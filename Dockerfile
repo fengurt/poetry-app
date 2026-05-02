@@ -3,7 +3,7 @@
 
 FROM node:22-slim
 
-# Use a more reliable mirror and retry logic for slow/unstable networks
+# Retry apt downloads up to 3 times on slow/unstable networks
 RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80retry \
     && apt-get update \
     && apt-get install -y --no-install-recommends --fix-missing sqlite3 \
@@ -12,7 +12,11 @@ RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80retry \
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+
+# npm ci fails often on unstable connections; fall back to npm install with retries
+# The extra --prefer-offline flag helps when packages are already in any local cache
+RUN npm install --prefer-offline --retry 3 --no-audit --no-fund || \
+    npm install --retry 3 --no-audit --no-fund
 
 # Copy migrate script before "COPY . ." so it's available after .dockerignore exclusions
 COPY scripts/migrate.js ./

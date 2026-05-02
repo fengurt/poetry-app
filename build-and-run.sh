@@ -19,6 +19,9 @@ PORT=3000
 IMAGE="${APP_NAME}:latest"
 CONTAINER="${APP_NAME}-app"
 
+# Temp staging dir — avoids Docker Desktop context issues with deep paths
+STAGING_DIR="/tmp/poetry-app-staging"
+
 # ── Colours ────────────────────────────────────────────────
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'
 RED='\033[0;31m'; NC='\033[0m'
@@ -52,13 +55,36 @@ setup_server() {
   fi
 }
 
+# ── Stage files to temp dir (avoids Docker Desktop path bug) ─
+stage_files() {
+  log "Staging files to ${STAGING_DIR}…"
+  rm -rf "${STAGING_DIR}"
+  mkdir -p "${STAGING_DIR}"
+
+  # Copy everything except node_modules, .next, git, db files, docs
+  rsync -a \
+    --exclude=node_modules \
+    --exclude=.next \
+    --exclude=.git \
+    --exclude='*.db' \
+    --exclude='*.db-shm' \
+    --exclude='*.db-wal' \
+    --exclude=README.md \
+    --exclude=tsconfig.json \
+    --exclude=eslint.config.mjs \
+    --exclude=.gitignore \
+    --exclude='*.md' \
+    --exclude=.DS_Store \
+    --exclude='.dockerignore' \
+    . "${STAGING_DIR}/"
+
+  log "Staged $(find "${STAGING_DIR}" -type f | wc -l) files."
+}
+
 # ── Build the Docker image ─────────────────────────────────
 build_image() {
   log "Building Docker image '${IMAGE}'…"
-  docker build \
-    --label "app=${APP_NAME}" \
-    --label "maintainer=poetry-app" \
-    -t "${IMAGE}" .
+  docker build -t "${IMAGE}" "${STAGING_DIR}"
   log "Image built successfully."
 }
 
@@ -75,7 +101,6 @@ teardown() {
 run_app() {
   log "Starting container '${CONTAINER}' on port ${PORT}…"
 
-  # Persist DB in a Docker volume so it survives container restarts
   docker run -d \
     --name "${CONTAINER}" \
     --restart unless-stopped \
@@ -108,9 +133,10 @@ status_app() {
   docker ps -a --filter "name=${CONTAINER}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 }
 
-# ── Deploy: build + run ───────────────────────────────────
+# ── Deploy: stage → build → run ──────────────────────────
 deploy() {
   check_docker
+  stage_files
   teardown
   build_image
   run_app
