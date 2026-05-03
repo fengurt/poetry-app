@@ -2,9 +2,9 @@
   "$schema": "https://coolify.io/schemas/deploy.json",
   "name": "poetry-app",
   "version": "1.0.0",
-  "description": "爱国诗词集 — Next.js + SQLite",
+  "description": "爱国诗词集 — Express 5 + EJS + SQLite（单容器 node server.js）",
   "icon": "book",
-  "categories": ["nextjs", "nodejs"],
+  "categories": ["nodejs"],
   "environment": [
     {
       "key": "NODE_ENV",
@@ -13,11 +13,19 @@
     {
       "key": "PORT",
       "value": "3000"
+    },
+    {
+      "key": "DB_PATH",
+      "value": "/app/data/poetry.db"
+    },
+    {
+      "key": "DATA_FILE",
+      "value": "/app/poetry_data.json"
     }
   ],
   "build": {
-    "method": "nixpacks",
-    "command": "npm install && npm run build",
+    "method": "dockerfile",
+    "command": "",
     "port": 3000,
     "healthCheckPath": "/"
   },

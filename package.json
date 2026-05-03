@@ -1,32 +1,25 @@
 {
   "name": "poetry-app",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "node server.js",
+    "dev":  "node server.js",
+    "check": "node --check server.js",
+    "preview": "bash scripts/preview-local.sh"
   },
   "dependencies": {
     "better-sqlite3": "^12.9.0",
-    "docx": "^9.6.1",
-    "next": "16.2.4",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "uuid": "^14.0.0",
-    "xlsx": "^0.18.5"
+    "docx":          "^9.6.1",
+    "ejs":           "^3.1.10",
+    "exceljs":       "^4.4.0",
+    "express":       "^5.1.0",
+    "uuid":          "^14.0.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/uuid": "^10.0.0",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.4",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/express":       "^5.0.0",
+    "@types/node":          "^20",
+    "@types/uuid":          "^10.0.0"
   }
 }

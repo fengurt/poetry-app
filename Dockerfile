@@ -1,28 +1,24 @@
-# Build for Coolify / self-hosted VPS deployment
-# Usage: docker build -t poetry-app . && docker run -d -p 3000:3000 poetry-app
-
+# Simple single-stage Dockerfile — no build step needed
+# Express serves pre-built EJS templates directly
 FROM node:22-slim
 
 WORKDIR /app
 
+# Install deps first (works reliably even on slow/unstable connections)
 COPY package*.json ./
-
-# npm ci fails often on unstable connections; fall back to npm install with retries
 RUN npm install --prefer-offline --retry 3 --no-audit --no-fund || \
     npm install --retry 3 --no-audit --no-fund
 
-# Copy migrate script before "COPY . ." so it's available after .dockerignore exclusions
-# Strip any CRLF from the script so Node.js can parse it (DOS line endings break shebang)
-COPY scripts/migrate.js ./migrate.js
-RUN sed -i 's/\r$//' migrate.js
-
+# Copy everything else
 COPY . .
 
-RUN npx next build
-
-EXPOSE 3000
+# Persistent SQLite lives here (bind mount or named volume in Coolify)
+RUN mkdir -p /app/data
 
 ENV NODE_ENV=production
 ENV PORT=3000
+ENV DB_PATH=/app/data/poetry.db
+ENV DATA_FILE=/app/poetry_data.json
 
-CMD ["sh", "-c", "node migrate.js && node .next/standalone/server.js"]
+# poetry_data.json seeds empty DB; optional /app/poetry.db in image = classified backup
+CMD ["node", "server.js"]

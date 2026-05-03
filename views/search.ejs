@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { ink:'#1a1814', warm:'#f7f3ee', gold:'#c5973a', goldLt:'#e8d5a3', cream:'#faf8f5', muted:'#8b8178', stroke:'#e8e2d8' },
+          fontFamily: { serif: ['Noto Serif SC','Georgia','serif'], sans: ['Inter','system-ui','sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Inter','Noto Serif SC', sans-serif; }
+    body { background: #faf8f5; }
+    .card-ink { background: white; border: 1px solid #e8e2d8; box-shadow: 2px 2px 0 #c5973a18, 4px 4px 0 #c5973a08; }
+    .poem-line { font-family: 'Noto Serif SC', serif; line-height: 1.8; }
+    .chip-author { background: #1a1814; color: #f7f3ee; border-radius: 2px; padding: 2px 10px; font-size: 0.75rem; }
+    .chip-cat { border: 1px solid #c5973a; color: #c5973a; border-radius: 2px; padding: 2px 10px; font-size: 0.75rem; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col antialiased">
+
+<header class="sticky top-0 z-30 bg-[#faf8f5]/95 backdrop-blur-sm border-b border-[#e8e2d8]">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-full bg-[#1a1814] flex items-center justify-center shrink-0">
+        <span class="text-[#c5973a] text-xs font-serif font-bold">詩</span>
+      </div>
+      <h1 class="text-base font-serif font-semibold text-[#1a1814]"><%= title %></h1>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-6 w-full">
+
+  <% if (query) { %>
+    <div class="mb-6 pb-4 border-b border-[#e8e2d8] flex items-baseline gap-3">
+      <span class="text-sm text-[#8b8178] font-sans">搜索结果</span>
+      <span class="font-serif text-xl font-semibold text-[#1a1814]">"<%= query %>"</span>
+      <span class="text-sm text-[#c5973a] font-sans ml-auto"><%= poems.length %> 首</span>
+    </div>
+  <% } %>
+
+  <% if (poems.length > 0) { %>
+    <div class="space-y-3">
+      <% poems.forEach(p => { %>
+        <a href="/poems/<%= p.id %>" class="card-ink block p-5 rounded-sm hover:shadow-md transition-shadow" style="text-decoration:none">
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <h3 class="font-serif text-lg font-semibold text-[#1a1814] leading-snug"><%= p.title %></h3>
+                <span class="chip-author font-sans"><%= p.author_name %></span>
+                <% if (p.category) { %>
+                  <span class="chip-cat font-sans"><%= p.category %></span>
+                <% } %>
+              </div>
+              <p class="mt-2 poem-line text-[#5c5650] line-clamp-2 leading-relaxed text-sm">
+                <%= p.content.replace(/\n/g,' ').substring(0,100) %>…
+              </p>
+              <% if (p.tags && p.tags.length > 0) { %>
+                <div class="mt-2 flex flex-wrap gap-1">
+                  <% p.tags.forEach(t => { %>
+                    <span class="text-xs bg-[#f7f3ee] border border-[#e8e2d8] text-[#8b8178] px-2 py-0.5 rounded-sm font-sans">#<%= t %></span>
+                  <% }) %>
+                </div>
+              <% } %>
+            </div>
+            <% if (p.dynasty || p.poetry_type) { %>
+              <div class="shrink-0 text-right">
+                <% if (p.dynasty) { %>
+                  <div class="text-xs text-[#8b8178] font-sans"><%= p.dynasty %></div>
+                <% } %>
+                <% if (p.poetry_type) { %>
+                  <div class="text-xs text-[#8b8178] font-sans"><%= p.poetry_type %></div>
+                <% } %>
+              </div>
+            <% } %>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="card-ink p-16 text-center rounded-sm">
+      <div class="text-4xl mb-4">🔍</div>
+      <% if (query) { %>
+        <p class="font-serif text-lg text-[#1a1814] mb-2">未找到与 "<%= query %>" 相关的诗词</p>
+        <p class="text-sm text-[#8b8178] mb-6">换个关键词试试吧</p>
+      <% } else { %>
+        <p class="font-serif text-lg text-[#1a1814] mb-2">输入关键词开始搜索</p>
+        <p class="text-sm text-[#8b8178] mb-6">支持诗词标题、作者、分类、朝代等</p>
+      <% } %>
+      <a href="/" class="inline-block px-5 py-2 bg-[#1a1814] text-white text-sm font-sans rounded-sm hover:bg-[#c5973a] transition-colors">
+        返回首页
+      </a>
+    </div>
+  <% } %>
+
+</main>
+
+<%- include('partials/nav') %>
+
+</body>
+</html>

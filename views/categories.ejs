@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { ink:'#1a1814', warm:'#f7f3ee', gold:'#c5973a', goldLt:'#e8d5a3', cream:'#faf8f5', muted:'#8b8178', stroke:'#e8e2d8' },
+          fontFamily: { serif: ['Noto Serif SC','Georgia','serif'], sans: ['Inter','system-ui','sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Inter','Noto Serif SC', sans-serif; }
+    body { background: #faf8f5; }
+    .bar { transition: width 0.4s ease; height: 6px; border-radius: 3px; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col antialiased">
+
+<header class="sticky top-0 z-30 bg-[#faf8f5]/95 backdrop-blur-sm border-b border-[#e8e2d8]">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-full bg-[#1a1814] flex items-center justify-center shrink-0">
+        <span class="text-[#c5973a] text-xs font-serif font-bold">詩</span>
+      </div>
+      <h1 class="text-base font-serif font-semibold text-[#1a1814]"><%= title %></h1>
+    </div>
+  </div>
+</header>
+
+<main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
+
+  <!-- Stats grid -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+    <div class="border border-[#e8e2d8] bg-white p-5 text-center rounded-sm">
+      <div class="text-4xl font-serif font-bold text-[#c5973a]"><%= totalPoems %></div>
+      <div class="text-xs text-[#8b8178] mt-1 font-sans">诗词总数</div>
+    </div>
+    <div class="border border-[#e8e2d8] bg-white p-5 text-center rounded-sm">
+      <div class="text-4xl font-serif font-bold text-[#1a1814]"><%= authors.length %></div>
+      <div class="text-xs text-[#8b8178] mt-1 font-sans">作者人数</div>
+    </div>
+    <div class="border border-[#e8e2d8] bg-white p-5 text-center rounded-sm">
+      <div class="text-4xl font-serif font-bold text-[#c5973a]"><%= stats.length %></div>
+      <div class="text-xs text-[#8b8178] mt-1 font-sans">已分类</div>
+    </div>
+    <div class="border border-[#e8e2d8] bg-white p-5 text-center rounded-sm">
+      <div class="text-4xl font-serif font-bold text-[#8b8178]"><%= totalPoems - stats.reduce((s,r)=>s+r.count,0) %></div>
+      <div class="text-xs text-[#8b8178] mt-1 font-sans">未分类</div>
+    </div>
+  </div>
+
+  <!-- Category distribution -->
+  <div class="border border-[#e8e2d8] bg-white p-6 mb-6 rounded-sm">
+    <h2 class="text-sm font-sans font-semibold text-[#8b8178] uppercase tracking-wider mb-6">分类分布</h2>
+    <div class="space-y-4">
+      <% stats.forEach(s => { %>
+        <% const pct = totalPoems > 0 ? (s.count / totalPoems * 100) : 0; %>
+        <div class="grid grid-cols-[140px_1fr_60px] gap-3 items-center">
+          <span class="text-sm font-serif text-[#1a1814] truncate"><%= s.category %></span>
+          <div class="bg-[#f0ebe3] rounded-full h-1.5 overflow-hidden">
+            <div class="bar bg-[#c5973a]" style="width:<%= pct %>%"></div>
+          </div>
+          <span class="text-xs text-[#8b8178] text-right font-sans"><%= s.count %> (<%= pct.toFixed(1) %>%)</span>
+        </div>
+      <% }) %>
+      <% if (stats.length === 0) { %>
+        <p class="text-sm text-[#8b8178] font-serif">暂无分类数据</p>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Author grid -->
+  <div class="border border-[#e8e2d8] bg-white p-6 mb-8 rounded-sm">
+    <h2 class="text-sm font-sans font-semibold text-[#8b8178] uppercase tracking-wider mb-6">作者分布</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      <% authors.forEach(a => { %>
+        <a href="/search?q=<%= encodeURIComponent(a.name) %>"
+           class="border border-[#e8e2d8] rounded-sm p-4 hover:border-[#c5973a] hover:shadow-sm transition-all group">
+          <div class="font-serif font-medium text-[#1a1814] truncate text-sm group-hover:text-[#c5973a]"><%= a.name %></div>
+          <div class="text-xs text-[#8b8178] mt-1"><%= a.poem_count %> 首</div>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+
+  <!-- Export buttons -->
+  <div class="flex flex-wrap gap-3 justify-center">
+    <a href="/api/export?format=xlsx"
+       class="flex items-center gap-2 px-5 py-2.5 bg-[#1a1814] text-white text-sm font-sans rounded-sm hover:bg-[#c5973a] transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="1.5" stroke-linecap="round" d="M12 16v-7m0 0l-3 3m3-3l3 3M3 12h18"/></svg>
+      Excel 导出
+    </a>
+    <a href="/api/export?format=docx"
+       class="flex items-center gap-2 px-5 py-2.5 border border-[#e8e2d8] text-[#1a1814] text-sm font-sans rounded-sm hover:border-[#c5973a] hover:text-[#c5973a] transition-colors">
+      Word 导出
+    </a>
+    <a href="/api/export?format=byauthor"
+       class="flex items-center gap-2 px-5 py-2.5 border border-[#e8e2d8] text-[#1a1814] text-sm font-sans rounded-sm hover:border-[#c5973a] hover:text-[#c5973a] transition-colors">
+      按作者导出
+    </a>
+    <a href="/api/export?format=bycategory"
+       class="flex items-center gap-2 px-5 py-2.5 border border-[#e8e2d8] text-[#1a1814] text-sm font-sans rounded-sm hover:border-[#c5973a] hover:text-[#c5973a] transition-colors">
+      按分类导出
+    </a>
+  </div>
+</main>
+
+<%- include('partials/nav') %>
+
+</body>
+</html>

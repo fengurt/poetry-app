@@ -1,0 +1,58 @@
+<header class="sticky top-0 z-30 bg-[#faf8f5]/95 backdrop-blur-sm border-b border-[#e8e2d8]">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+    <div class="flex flex-col gap-3">
+
+      <!-- Title row -->
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <!-- Ink brush icon mark -->
+          <div class="w-7 h-7 rounded-full bg-[#1a1814] flex items-center justify-center shrink-0">
+            <span class="text-[#c5973a] text-xs font-serif font-bold">詩</span>
+          </div>
+          <h1 class="text-base font-serif font-semibold text-[#1a1814] tracking-wide">
+            <%= title %>
+          </h1>
+        </div>
+        <!-- Right: search icon link -->
+        <a href="/search"
+           class="w-9 h-9 flex items-center justify-center rounded-full border border-[#e8e2d8]
+                  bg-white hover:border-[#c5973a] hover:text-[#c5973a] transition-colors shrink-0"
+           aria-label="搜索">
+          <svg class="w-4 h-4 text-[#8b8178]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7" stroke-width="1.5"/>
+            <path d="m16.5 16.5 3 3" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Search form -->
+      <form action="/search" method="get" class="w-full">
+        <div class="relative flex items-center">
+          <input
+            type="search"
+            name="q"
+            placeholder="搜索诗词、作者、分类、朝代…"
+            value="<%= typeof query !== 'undefined' ? query : '' %>"
+            class="w-full h-10 pl-4 pr-12 rounded-sm border border-[#e8e2d8] bg-white
+                   text-sm text-[#1a1814] placeholder:text-[#b0a89e]
+                   focus:outline-none focus:border-[#c5973a] focus:ring-1 focus:ring-[#c5973a]/30
+                   font-sans transition-colors"
+          >
+          <button
+            type="submit"
+            class="absolute right-1.5 top-1/2 -translate-y-1/2
+                   w-8 h-8 rounded-sm bg-[#1a1814] hover:bg-[#c5973a] text-white
+                   flex items-center justify-center transition-colors"
+            aria-label="搜索"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="6" stroke-width="1.5"/>
+              <path d="m16.5 16.5 3 3" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</header>

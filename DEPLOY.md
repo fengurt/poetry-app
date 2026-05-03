@@ -94,9 +94,8 @@ git push -u origin main
 
 确保项目根目录包含：
 - `Dockerfile`
-- `next.config.ts`（已配置 `output: "standalone"`）
-- `scripts/migrate.js`
-- `poetry_data.json`（数据文件，会在镜像中用到）
+- `server.js`（Express 入口）
+- `poetry_data.json`（首次空库时种子数据；可选同目录 `poetry.db` 作为已分类备份）
 
 ---
 
@@ -118,13 +117,12 @@ git push -u origin main
 
 ### 3.3 配置构建与启动
 
-Coolify 会自动检测为 Next.js 应用，建议检查以下字段：
+本应用为 **Dockerfile 构建** 的 Node 单进程，不要用 Nixpacks 跑 `npm run build`（已无 Next 构建）。
 
 | 字段 | 值 |
 |------|-----|
-| **Build Pack** | Nixpacks（或 Dockerfile） |
-| **Build Command** | （自动检测，如有需要填）`npm install && npm run build` |
-| **Start Command** | `npm start` |
+| **Build Pack** | **Dockerfile** |
+| **Base Directory** | 若仓库根即本应用则为 `/`；若在 monorepo 子目录则填 `poetry-app` |
 | **Port** | `3000` |
 | **HEALTH CHECK PATH** | `/` |
 
@@ -135,7 +133,11 @@ Coolify 会自动检测为 Next.js 应用，建议检查以下字段：
 ```
 NODE_ENV=production
 PORT=3000
+DB_PATH=/app/data/poetry.db
+DATA_FILE=/app/poetry_data.json
 ```
+
+在 Coolify 中为应用添加 **持久化目录**（或命名卷）挂载到容器的 `/app/data`，否则容器重建后 SQLite 会丢失。镜像内可选包含已分类的 `poetry.db`（与 `DB_PATH` 不同路径），启动时若卷库分类条数更少会自动复制覆盖。
 
 ### 3.5 配置域名与 HTTPS
 
@@ -148,11 +150,11 @@ PORT=3000
 
 点击 **Deploy** — Coolify 会：
 1. 从 GitHub 拉取最新代码
-2. 在 Docker 容器中执行 `npm install && npm run build`
-3. 启动 Next.js 生产进程（端口 3000）
+2. `docker build`（`npm install` 在镜像构建阶段完成）
+3. 启动 `node server.js`（监听 `PORT`，默认 3000）
 4. 通过 Traefik 自动反向代理 + HTTPS
 
-构建日志实时显示在 Coolify UI 中。正常 Next.js 冷构建约 90～120 秒。
+构建日志在 Coolify UI 中查看；无前端打包步骤，冷构建通常明显快于原 Next 方案。
 
 ---
 
@@ -174,13 +176,14 @@ PORT=3000
 | 构建失败 OOM | 内存不足 | 确认 swap 已启用；降低并发构建数 |
 | 访问显示 502 | 后端进程未启动 | 检查日志；确认 `npm start` 而非 `npm run dev` |
 | HTTPS 申请失败 | 域名未正确解析 / 端口未通 | 确认 DNS A 记录生效；安全组放行 80/443 |
-| `better-sqlite3` 报错 | Alpine 镜像缺少 `sqlite` | Dockerfile 中已加 `apk add --no-cache sqlite`，确认构建日志 |
-| 数据库为空 | `poetry_data.json` 未找到 | 确认文件在仓库根目录；检查 `scripts/migrate.js` 日志 |
+| `better-sqlite3` 报错 | 原生模块与 Node 版本不匹配 | 确认镜像为 `node:22-slim` 与本地一致；看构建日志 |
+| 数据库为空或分类丢失 | 未挂卷、或覆盖时 WAL 未关闭 | 为 `/app/data` 配置持久卷；勿在进程占用 `poetry.db` 时 `docker cp` 覆盖（需停容器或先关库） |
+| 分类条数不对 | 卷上旧库优先 | 检查 `DB_PATH` 与卷内文件；需要时用镜像内备份 `poetry.db` 逻辑或手动替换卷内库 |
 
 ---
 
 ## 重要说明
 
-- `poetry_data.json` 已包含所有诗词数据，构建时打包进镜像，容器首次启动时通过 `scripts/migrate.js` 自动写入 `poetry.db`
-- 后续如有新数据，修改 `poetry_data.json` 后 `git push`，Coolify 自动重新构建 + 重新迁移
-- 当前使用本地 SQLite 文件（`poetry.db`），适合低并发场景；如需水平扩展，可将数据库迁移至 Coolify 内置的 PostgreSQL
+- `poetry_data.json` 打进镜像；首次空库时由 `server.js` 内 `migrate()` 写入 `DB_PATH`（默认 `/app/data/poetry.db`）。若镜像内另有 `poetry.db` 且分类多于当前库，会在启动时复制到 `DB_PATH`（复制前会关闭连接并删除 `-wal`/`-shm`，避免损坏）。
+- 生产数据请依赖 **挂载到 `/app/data` 的卷**；仅改 JSON 并重建镜像不会自动覆盖已有卷上的库，需自行迁移或清空卷。
+- 当前为单机 SQLite，适合低并发；扩展可迁到 Coolify 的 PostgreSQL 等。

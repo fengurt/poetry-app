@@ -1,0 +1,55 @@
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#faf8f5]/95 backdrop-blur-md border-t border-[#e8e2d8]"
+     aria-label="主导航">
+  <div class="flex items-stretch justify-around px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+
+    <a href="/"
+       class="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-sm transition-colors
+              <%= currentPage === 'home' ? 'text-[#c5973a]' : 'text-[#8b8178] hover:text-[#1a1814]' %>"
+       aria-label="首页">
+      <!-- Ink icon -->
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <path d="M3 3h7v7H3z" fill="currentColor" opacity="0.4"/>
+        <path d="M5 5h3v3H5z" fill="currentColor"/>
+        <path d="M13 3h8v5h-8z" fill="currentColor" opacity="0.6"/>
+        <path d="M13 10h8v11h-8z" fill="currentColor" opacity="0.3"/>
+        <circle cx="19" cy="18" r="2.5" fill="currentColor"/>
+      </svg>
+      <span class="text-[10px] font-sans font-medium tracking-wide">首页</span>
+      <% if (currentPage === 'home') { %>
+        <div class="nav-dot mt-0.5"></div>
+      <% } %>
+    </a>
+
+    <a href="/categories"
+       class="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-sm transition-colors
+              <%= currentPage === 'categories' ? 'text-[#c5973a]' : 'text-[#8b8178] hover:text-[#1a1814]' %>"
+       aria-label="可视化">
+      <!-- Chart icon -->
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="14" width="4" height="7" rx="0.5" fill="currentColor" opacity="0.4"/>
+        <rect x="10" y="9" width="4" height="12" rx="0.5" fill="currentColor" opacity="0.7"/>
+        <rect x="17" y="4" width="4" height="17" rx="0.5" fill="currentColor"/>
+      </svg>
+      <span class="text-[10px] font-sans font-medium tracking-wide">可视化</span>
+      <% if (currentPage === 'categories') { %>
+        <div class="nav-dot mt-0.5"></div>
+      <% } %>
+    </a>
+
+    <a href="/tags"
+       class="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-sm transition-colors
+              <%= currentPage === 'tags' ? 'text-[#c5973a]' : 'text-[#8b8178] hover:text-[#1a1814]' %>"
+       aria-label="标签">
+      <!-- Tag/label icon -->
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <path d="M4.5 4.5h8l7 7-8 8-7-7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        <circle cx="8" cy="8.5" r="1.2" fill="currentColor"/>
+      </svg>
+      <span class="text-[10px] font-sans font-medium tracking-wide">标签</span>
+      <% if (currentPage === 'tags') { %>
+        <div class="nav-dot mt-0.5"></div>
+      <% } %>
+    </a>
+
+  </div>
+</nav>

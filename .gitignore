@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Express / SQLite local
+/data/
+*.db-wal
+*.db-shm
+poetry.db.classified
+scripts/poetry.db

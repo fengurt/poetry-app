@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= poem.title %> — 爱国诗词集</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:    '#1a1814',
+            warm:   '#f7f3ee',
+            gold:   '#c5973a',
+            goldLt: '#e8d5a3',
+            cream:  '#faf8f5',
+            muted:  '#8b8178',
+            stroke: '#e8e2d8',
+          },
+          fontFamily: {
+            serif: ['Noto Serif SC', 'Georgia', 'serif'],
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Inter', 'Noto Serif SC', sans-serif; }
+    body { background: #faf8f5; }
+
+    .poem-content { font-family: 'Noto Serif SC', serif; line-height: 2.2; }
+    .poem-line { font-size: 1.15rem; color: #2c2824; display: block; }
+    .poem-line.indent { padding-left: 2rem; }
+
+    .chip-author { background: #1a1814; color: #f7f3ee; border-radius: 2px; padding: 2px 10px; font-size: 0.75rem; }
+    .chip-cat { border: 1px solid #c5973a; color: #c5973a; border-radius: 2px; padding: 2px 10px; font-size: 0.75rem; }
+    .chip-meta { border: 1px solid #e8e2d8; color: #8b8178; border-radius: 2px; padding: 2px 8px; font-size: 0.7rem; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col antialiased">
+
+<header class="sticky top-0 z-30 bg-[#faf8f5]/95 backdrop-blur-sm border-b border-[#e8e2d8]">
+  <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-4">
+    <a href="/" class="flex items-center gap-2 text-sm text-[#8b8178] hover:text-[#c5973a] transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-width="1.5" stroke-linecap="round" d="M15 19l-7-7 7-7"/>
+      </svg>
+      <span>返回</span>
+    </a>
+    <div class="w-6 h-6 rounded-full bg-[#1a1814] flex items-center justify-center">
+      <span class="text-[#c5973a] text-xs font-serif font-bold">詩</span>
+    </div>
+    <p class="font-serif font-semibold text-[#1a1814] text-base truncate m-0" aria-hidden="true"><%= poem.title %></p>
+  </div>
+</header>
+
+<main class="flex-1 max-w-4xl mx-auto px-4 py-8 w-full">
+
+  <!-- Poem card -->
+  <div class="bg-white border border-[#e8e2d8] rounded-sm p-8 sm:p-12 mb-8"
+       style="box-shadow: 4px 4px 0 #c5973a18;">
+
+    <!-- Title block -->
+    <div class="text-center mb-8">
+      <h1 id="poem-title" class="text-3xl sm:text-4xl font-serif font-semibold text-[#1a1814] leading-snug mb-2">
+        <%= poem.title %>
+      </h1>
+      <% if (poem.subtitle) { %>
+        <p class="text-[#8b8178] text-base font-serif"><%= poem.subtitle %></p>
+      <% } %>
+    </div>
+
+    <!-- Meta chips -->
+    <div class="flex flex-wrap items-center justify-center gap-2 mb-10">
+      <span class="chip-author font-sans"><%= poem.author_name %></span>
+      <% if (poem.dynasty) { %>
+        <span class="chip-meta font-sans"><%= poem.dynasty %></span>
+      <% } %>
+      <% if (poem.poetry_type) { %>
+        <span class="chip-meta font-sans"><%= poem.poetry_type %></span>
+      <% } %>
+      <% if (poem.category) { %>
+        <span class="chip-cat font-sans"><%= poem.category %></span>
+      <% } %>
+    </div>
+
+    <!-- Poem body -->
+    <div class="poem-content max-w-2xl mx-auto">
+      <% const lines = poem.content.split('\n'); %>
+      <% lines.forEach((line, i) => { %>
+        <% if (line.trim()) { %>
+          <span class="poem-line<%= i > 0 && (lines[i-1]?.trim()) ? ' indent' : '' %>"><%= line %></span>
+        <% } else { %>
+          <br>
+        <% } %>
+      <% }) %>
+    </div>
+
+    <!-- Source / Notes -->
+    <% if (poem.source || poem.notes) { %>
+      <div class="mt-10 pt-6 border-t border-[#e8e2d8]">
+        <% if (poem.source) { %>
+          <p class="text-sm text-[#8b8178]">
+            <span class="text-[#c5973a] font-sans text-xs uppercase tracking-wider mr-2">来源</span>
+            <span class="font-serif"><%= poem.source %></span>
+          </p>
+        <% } %>
+        <% if (poem.notes) { %>
+          <p class="text-sm text-[#8b8178] mt-2">
+            <span class="text-[#c5973a] font-sans text-xs uppercase tracking-wider mr-2">注释</span>
+            <span class="font-serif"><%= poem.notes %></span>
+          </p>
+        <% } %>
+      </div>
+    <% } %>
+
+    <!-- Tags -->
+    <% if (poem.tags && poem.tags.length > 0) { %>
+      <div class="mt-6 flex flex-wrap gap-2">
+        <% poem.tags.forEach(t => { %>
+          <span class="text-xs bg-[#f7f3ee] border border-[#e8e2d8] text-[#8b8178] px-2.5 py-1 rounded-sm font-sans">
+            #<%= t %>
+          </span>
+        <% }) %>
+      </div>
+    <% } %>
+
+  </div>
+
+  <!-- Navigation links -->
+  <div class="flex items-center justify-between text-sm">
+    <a href="/" class="text-[#8b8178] hover:text-[#c5973a] transition-colors font-sans">
+      ← 返回首页
+    </a>
+    <a href="/search" class="text-[#8b8178] hover:text-[#c5973a] transition-colors font-sans">
+      全局搜索 →
+    </a>
+  </div>
+
+</main>
+
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#faf8f5]/95 backdrop-blur-md border-t border-[#e8e2d8]">
+  <div class="flex items-stretch justify-around px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+    <a href="/" class="flex flex-col items-center gap-0.5 px-4 py-2 rounded-sm text-[#8b8178] hover:text-[#1a1814] transition-colors">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <path d="M3 3h7v7H3z" fill="currentColor" opacity="0.4"/><path d="M5 5h3v3H5z" fill="currentColor"/>
+        <path d="M13 3h8v5h-8z" fill="currentColor" opacity="0.6"/><path d="M13 10h8v11h-8z" fill="currentColor" opacity="0.3"/>
+        <circle cx="19" cy="18" r="2.5" fill="currentColor"/>
+      </svg>
+      <span class="text-[10px] font-sans font-medium tracking-wide">首页</span>
+    </a>
+    <a href="/categories" class="flex flex-col items-center gap-0.5 px-4 py-2 rounded-sm text-[#8b8178] hover:text-[#1a1814] transition-colors">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="14" width="4" height="7" rx="0.5" fill="currentColor" opacity="0.4"/>
+        <rect x="10" y="9" width="4" height="12" rx="0.5" fill="currentColor" opacity="0.7"/>
+        <rect x="17" y="4" width="4" height="17" rx="0.5" fill="currentColor"/>
+      </svg>
+      <span class="text-[10px] font-sans font-medium tracking-wide">可视化</span>
+    </a>
+    <a href="/tags" class="flex flex-col items-center gap-0.5 px-4 py-2 rounded-sm text-[#8b8178] hover:text-[#1a1814] transition-colors">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <path d="M4.5 4.5h8l7 7-8 8-7-7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="none"/>
+        <circle cx="8" cy="8.5" r="1.2" fill="currentColor"/>
+      </svg>
+      <span class="text-[10px] font-sans font-medium tracking-wide">标签</span>
+    </a>
+  </div>
+</nav>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  poetry-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: poetry-app:latest
+    container_name: poetry-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_PATH: /app/data/poetry.db
+      DATA_FILE: /app/data/poetry_data.json
+    volumes:
+      - poetry-data:/app/data
+
+volumes:
+  poetry-data:
