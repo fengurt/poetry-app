@@ -45,6 +45,7 @@ next-env.d.ts
 *.db-wal
 *.db-shm
 poetry.db.classified
+/poetry.db
 scripts/poetry.db
 
 # OpenTofu / Terraform (infra/coolify)
