@@ -187,3 +187,11 @@ DATA_FILE=/app/poetry_data.json
 - `poetry_data.json` 打进镜像；首次空库时由 `server.js` 内 `migrate()` 写入 `DB_PATH`（默认 `/app/data/poetry.db`）。若镜像内另有 `poetry.db` 且分类多于当前库，会在启动时复制到 `DB_PATH`（复制前会关闭连接并删除 `-wal`/`-shm`，避免损坏）。
 - 生产数据请依赖 **挂载到 `/app/data` 的卷**；仅改 JSON 并重建镜像不会自动覆盖已有卷上的库，需自行迁移或清空卷。
 - 当前为单机 SQLite，适合低并发；扩展可迁到 Coolify 的 PostgreSQL 等。
+
+---
+
+## OpenTofu / 自动化部署（可选）
+
+仓库内 **`infra/coolify/`** 提供最小 OpenTofu（或 Terraform）配置：在 `terraform.tfvars` 中填写 Coolify **API 基址**、**应用 UUID**、**API Token** 后，`tofu apply` 会通过 `curl` 调用 Coolify 的 **`/deploy`** 接口触发重新部署。不同 Coolify 版本的 API 路径可能略有差异，若 404 请对照你实例的 API 文档调整 `main.tf` 中的 URL。
+
+给 AI Agent 的简要说明见仓库根目录 **`AGENTS.md`**（分支、Dockerfile、卷、与 `infra/coolify` 的关系）。
