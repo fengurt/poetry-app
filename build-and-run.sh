@@ -21,6 +21,8 @@ CONTAINER="${APP_NAME}-app"
 
 # Temp staging dir — avoids Docker Desktop context issues with deep paths
 STAGING_DIR="/tmp/poetry-app-staging"
+# Repo root (where this script lives)
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # ── Colours ────────────────────────────────────────────────
 GREEN='\033[0;32m'; CYAN='\033[0;36m'; YELLOW='\033[1;33m'
@@ -58,10 +60,15 @@ setup_server() {
 # ── Stage files to temp dir (avoids Docker Desktop path bug) ─
 stage_files() {
   log "Staging files to ${STAGING_DIR}…"
-  rm -rf "${STAGING_DIR}"
+
+  # Always start fresh — prevents stale node_modules from being reused
+  if [[ -d "${STAGING_DIR}" ]]; then
+    rm -rf "${STAGING_DIR}"
+  fi
   mkdir -p "${STAGING_DIR}"
 
   # Copy everything except node_modules, .next, git, db files, docs
+  # tsconfig.json MUST be included (it defines the @/* path alias)
   rsync -a \
     --exclude=node_modules \
     --exclude=.next \
@@ -70,13 +77,22 @@ stage_files() {
     --exclude='*.db-shm' \
     --exclude='*.db-wal' \
     --exclude=README.md \
-    --exclude=tsconfig.json \
     --exclude=eslint.config.mjs \
     --exclude=.gitignore \
     --exclude='*.md' \
     --exclude=.DS_Store \
     --exclude='.dockerignore' \
     . "${STAGING_DIR}/"
+
+  # poetry_data.json lives one level up from the project — copy it so the
+  # migrate-on-start script can seed the DB inside the container
+  local DATA_SRC="${REPO_ROOT}/../poetry_data.json"
+  if [[ -f "${DATA_SRC}" ]]; then
+    cp "${DATA_SRC}" "${STAGING_DIR}/poetry_data.json"
+    log "Copied poetry_data.json ($(du -sh "${DATA_SRC}" | cut -f1)) into staging."
+  else
+    warn "poetry_data.json not found at ${DATA_SRC} — DB will start empty."
+  fi
 
   log "Staged $(find "${STAGING_DIR}" -type f | wc -l) files."
 }
