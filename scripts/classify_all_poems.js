@@ -173,10 +173,16 @@ function classifyPoem(title, content) {
     }
   }
 
-  // 如果最高分低于阈值，标记为未分类
-  if (bestScore < 0.5) {
-    bestCategory = '';
+  const MIN_CONFIDENCE = 0.5;
+  const FALLBACK_CATEGORY = '诗词文苑';
+
+  // 无任何关键词命中：归入通用默认类，避免库里长期空白 category
+  if (bestScore <= 0) {
+    bestCategory = FALLBACK_CATEGORY;
     bestScore = 0;
+  } else if (bestScore < MIN_CONFIDENCE) {
+    // 弱匹配仍保留得分最高的类，便于后续人工微调
+    // bestCategory / bestScore 保持不变
   }
 
   return { category: bestCategory, score: Math.round(bestScore * 100) / 100 };
@@ -184,7 +190,7 @@ function classifyPoem(title, content) {
 
 // 主函数
 function main() {
-  const DB_PATH = '/Users/af/cpro01/ksaclaude01/mamapoems999/poetry-app/poetry.db';
+  const DB_PATH = path.join(__dirname, '..', 'poetry.db');
 
   console.log('开始诗词分类...');
   console.log('分类类别:', CATEGORIES.join(', '));

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import { TopBar } from "@/components/TopBar";
 
 export const metadata: Metadata = {
   title: "爱国诗词集",
@@ -15,7 +16,8 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" className="h-full">
       <body className="min-h-full flex flex-col antialiased pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))]">
-        {children}
+        <TopBar />
+        <main className="flex-1">{children}</main>
         <BottomNav />
       </body>
     </html>

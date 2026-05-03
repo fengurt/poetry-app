@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { href: '/', label: '首页', icon: '首' },
-  { href: '/search', label: '搜索', icon: '索' },
   { href: '/categories', label: '可视化', icon: '图' },
   { href: '/tags', label: '标签', icon: '签' },
 ] as const;

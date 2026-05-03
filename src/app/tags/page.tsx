@@ -64,18 +64,8 @@ export default function TagsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/" className="text-blue-600 hover:text-blue-700">
-            ← 返回
-          </Link>
-          <h1 className="text-xl font-bold text-gray-800">标签管理</h1>
-        </div>
-      </header>
-
-      {/* Tab Navigation */}
-      <div className="bg-white border-b sticky top-16 z-10">
+      {/* Tab Navigation — top-28 clears global TopBar (title + search) */}
+      <div className="sticky top-28 z-20 border-b bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex overflow-x-auto -mb-px">
             {tabs.map(tab => (

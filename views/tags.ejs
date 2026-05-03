@@ -2,7 +2,7 @@
 <html lang="zh-CN" class="h-full">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <%- include('partials/mobile-head') %>
   <title><%= title %></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -20,15 +20,17 @@
   <style>
     * { font-family: 'Inter','Noto Serif SC', sans-serif; }
     body { background: #faf8f5; }
-    .tab-btn { padding: 10px 16px; font-size: 0.8rem; font-family: 'Inter', sans-serif; border-bottom: 2px solid transparent; color: #8b8178; transition: all 0.15s; white-space: nowrap; }
+    .tab-btn { padding: 12px 14px; min-height: 44px; font-size: 0.875rem; font-family: 'Inter', sans-serif; border-bottom: 2px solid transparent; color: #8b8178; transition: all 0.15s; white-space: nowrap; touch-action: manipulation; display: inline-flex; align-items: center; }
     .tab-btn.active { color: #c5973a; border-bottom-color: #c5973a; }
     .tag-card { border: 1px solid #e8e2d8; background: white; transition: all 0.15s; }
     .tag-card:hover { border-color: #c5973a; box-shadow: 0 4px 12px #c5973a12; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="min-h-full flex flex-col antialiased">
+<body class="min-h-full flex flex-col antialiased pad-bottom-nav">
 
-<header class="sticky top-0 z-30 bg-[#faf8f5]/95 backdrop-blur-sm border-b border-[#e8e2d8]">
+<header class="sticky top-0 z-30 bg-[#faf8f5]/95 backdrop-blur-sm border-b border-[#e8e2d8]" style="padding-top: max(0px, env(safe-area-inset-top));">
   <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3">
     <div class="flex items-center gap-3">
       <div class="w-7 h-7 rounded-full bg-[#1a1814] flex items-center justify-center shrink-0">
@@ -40,36 +42,36 @@
 </header>
 
 <!-- Tabs -->
-<div class="sticky top-[57px] z-20 bg-white border-b border-[#e8e2d8]">
+<div class="sticky top-14 z-20 bg-white/95 backdrop-blur-sm border-b border-[#e8e2d8]">
   <div class="max-w-6xl mx-auto px-4 sm:px-6">
-    <div class="flex overflow-x-auto -mb-0">
-      <button onclick="showTab('categories')" id="btn-categories" class="tab-btn active">分类 <span class="ml-1 text-[#8b8178]">(<%= categories.length %>)</span></button>
-      <button onclick="showTab('authors')"     id="btn-authors"     class="tab-btn">作者 <span class="ml-1 text-[#8b8178]">(<%= authors.length %>)</span></button>
-      <button onclick="showTab('types')"       id="btn-types"      class="tab-btn">类型 <span class="ml-1 text-[#8b8178]">(<%= poetryTypes.length %>)</span></button>
-      <button onclick="showTab('custom')"      id="btn-custom"     class="tab-btn">标签 <span class="ml-1 text-[#8b8178]">(<%= customTags.length %>)</span></button>
+    <div class="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-1 -mx-1 px-1 pb-px">
+      <button type="button" onclick="showTab('categories')" id="btn-categories" class="tab-btn active snap-start shrink-0">内容分类 <span class="ml-1 text-[#8b8178]">(<%= categories.length %>)</span></button>
+      <button type="button" onclick="showTab('authors')"     id="btn-authors"     class="tab-btn snap-start shrink-0">作者 <span class="ml-1 text-[#8b8178]">(<%= authors.length %>)</span></button>
+      <button type="button" onclick="showTab('types')"       id="btn-types"      class="tab-btn snap-start shrink-0">体裁 <span class="ml-1 text-[#8b8178]">(<%= poetryTypes.length %>)</span></button>
+      <button type="button" onclick="showTab('custom')"      id="btn-custom"     class="tab-btn snap-start shrink-0">标签 <span class="ml-1 text-[#8b8178]">(<%= customTags.length %>)</span></button>
     </div>
   </div>
 </div>
 
-<main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full">
+<main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-5 sm:py-8 w-full">
 
   <!-- Categories -->
   <div id="panel-categories" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
     <% categories.forEach(item => { %>
-      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-4 block">
+      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-3 sm:p-4 block min-h-[3.25rem] flex flex-col justify-center [touch-action:manipulation]">
         <div class="font-serif font-medium text-[#1a1814] truncate text-sm"><%= item.name %></div>
         <div class="text-xs text-[#c5973a] mt-1 font-sans"><%= item.count %> 首</div>
       </a>
     <% }) %>
     <% if (categories.length === 0) { %>
-      <p class="col-span-5 text-sm text-[#8b8178] font-serif py-8 text-center">暂无分类</p>
+      <p class="col-span-5 text-sm text-[#8b8178] font-serif py-8 text-center">暂无内容分类</p>
     <% } %>
   </div>
 
   <!-- Authors -->
   <div id="panel-authors" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
     <% authors.forEach(item => { %>
-      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-4 block">
+      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-3 sm:p-4 block min-h-[3.25rem] flex flex-col justify-center [touch-action:manipulation]">
         <div class="font-serif font-medium text-[#1a1814] truncate text-sm"><%= item.name %></div>
         <div class="text-xs text-[#c5973a] mt-1 font-sans"><%= item.count %> 首</div>
       </a>
@@ -79,20 +81,20 @@
   <!-- Types -->
   <div id="panel-types" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
     <% poetryTypes.forEach(item => { %>
-      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-4 block">
+      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-3 sm:p-4 block min-h-[3.25rem] flex flex-col justify-center [touch-action:manipulation]">
         <div class="font-serif font-medium text-[#1a1814] truncate text-sm"><%= item.name %></div>
         <div class="text-xs text-[#c5973a] mt-1 font-sans"><%= item.count %> 首</div>
       </a>
     <% }) %>
     <% if (poetryTypes.length === 0) { %>
-      <p class="col-span-5 text-sm text-[#8b8178] font-serif py-8 text-center">暂无类型</p>
+      <p class="col-span-5 text-sm text-[#8b8178] font-serif py-8 text-center">暂无体裁</p>
     <% } %>
   </div>
 
   <!-- Custom Tags -->
   <div id="panel-custom" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
     <% customTags.forEach(item => { %>
-      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-4 block">
+      <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-3 sm:p-4 block min-h-[3.25rem] flex flex-col justify-center [touch-action:manipulation]">
         <div class="font-serif font-medium text-[#1a1814] truncate text-sm">#<%= item.name %></div>
         <div class="text-xs text-[#8b8178] mt-1 font-sans"><%= item.count %> 首</div>
       </a>

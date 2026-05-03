@@ -1,9 +1,9 @@
 <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#faf8f5]/95 backdrop-blur-md border-t border-[#e8e2d8]"
      aria-label="主导航">
-  <div class="flex items-stretch justify-around px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
+  <div class="flex items-stretch justify-around px-1 sm:px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
 
     <a href="/"
-       class="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-sm transition-colors
+       class="flex flex-col items-center justify-center gap-0.5 min-w-[4.25rem] min-h-[3rem] py-2 px-2 rounded-sm transition-colors [touch-action:manipulation] active:opacity-80
               <%= currentPage === 'home' ? 'text-[#c5973a]' : 'text-[#8b8178] hover:text-[#1a1814]' %>"
        aria-label="首页">
       <!-- Ink icon -->
@@ -21,7 +21,7 @@
     </a>
 
     <a href="/categories"
-       class="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-sm transition-colors
+       class="flex flex-col items-center justify-center gap-0.5 min-w-[4.25rem] min-h-[3rem] py-2 px-2 rounded-sm transition-colors [touch-action:manipulation] active:opacity-80
               <%= currentPage === 'categories' ? 'text-[#c5973a]' : 'text-[#8b8178] hover:text-[#1a1814]' %>"
        aria-label="可视化">
       <!-- Chart icon -->
@@ -37,7 +37,7 @@
     </a>
 
     <a href="/tags"
-       class="flex flex-col items-center justify-center gap-0.5 px-4 py-2 rounded-sm transition-colors
+       class="flex flex-col items-center justify-center gap-0.5 min-w-[4.25rem] min-h-[3rem] py-2 px-2 rounded-sm transition-colors [touch-action:manipulation] active:opacity-80
               <%= currentPage === 'tags' ? 'text-[#c5973a]' : 'text-[#8b8178] hover:text-[#1a1814]' %>"
        aria-label="标签">
       <!-- Tag/label icon -->

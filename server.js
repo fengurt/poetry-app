@@ -12,6 +12,7 @@ const path = require('path');
 const APP_DIR  = __dirname;
 const DB_PATH  = process.env.DB_PATH  || path.join(APP_DIR, 'data', 'poetry.db');
 const DATA_FILE = process.env.DATA_FILE || path.join(APP_DIR, 'poetry_data.json');
+const { inferPoetryType } = require('./lib/inferPoetryType');
 
 // ── DB singleton ────────────────────────────────────────────────────────────────
 let _db = null;
@@ -100,6 +101,26 @@ function clampInt(value, fallback, min, max) {
   return Math.min(max, Math.max(min, n));
 }
 
+const POETRY_TYPE_INFER_META_KEY = 'poetry_type_infer_v4';
+
+/** 一次性为全库重写 poetry_type（词 / 曲 / 现代诗 / 诗等），不修改 category。 */
+function runPoetryTypeInferenceIfNeeded() {
+  const db = getDb();
+  db.exec('CREATE TABLE IF NOT EXISTS app_meta (k TEXT PRIMARY KEY, v TEXT NOT NULL)');
+  const done = db.prepare('SELECT 1 FROM app_meta WHERE k = ?').get(POETRY_TYPE_INFER_META_KEY);
+  if (done) return;
+
+  const rows = db.prepare('SELECT id, title, content, dynasty, poetry_type FROM poems').all();
+  const upd = db.prepare('UPDATE poems SET poetry_type = ? WHERE id = ?');
+  db.transaction(() => {
+    for (const row of rows) {
+      upd.run(inferPoetryType(row), row.id);
+    }
+    db.prepare('INSERT OR REPLACE INTO app_meta (k, v) VALUES (?, ?)').run(POETRY_TYPE_INFER_META_KEY, '1');
+  })();
+  console.log(`[migrate] Reinferred poetry_type for ${rows.length} poems (${POETRY_TYPE_INFER_META_KEY}).`);
+}
+
 // ── Migrate: seed from JSON or copy best backup ──────────────────────────────
 function migrate() {
   const db = getDb();
@@ -169,6 +190,7 @@ function migrate() {
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 migrate();
+runPoetryTypeInferenceIfNeeded();
 
 // ── Express App ───────────────────────────────────────────────────────────────
 const app  = express();
@@ -275,8 +297,8 @@ app.get('/api/export', async (req, res) => {
       { header: '标题', key: 'title',      width: 22 },
       { header: '作者', key: 'author_name', width: 12 },
       { header: '朝代', key: 'dynasty',     width: 8  },
-      { header: '类型', key: 'poetry_type', width: 8  },
-      { header: '分类', key: 'category',     width: 12 },
+      { header: '体裁', key: 'poetry_type', width: 10 },
+      { header: '内容分类', key: 'category', width: 14 },
       { header: '内容', key: 'content',      width: 40 },
     ];
     ws.addRows(poems.map(p => ({ ...p, content: p.content.replace(/\n/g, ' ') })));
@@ -358,8 +380,14 @@ app.post('/api/poems/import', (req, res) => {
             tagsField = JSON.stringify([]);
           }
         } else tagsField = JSON.stringify([]);
+        const inferredType = inferPoetryType({
+          title: p.title,
+          content: p.content || '',
+          dynasty: p.dynasty || '',
+          poetry_type: p.poetry_type || '',
+        });
         upsert.run(p.id, p.author_name, p.title, p.subtitle||'', p.content,
-          p.dynasty||'', p.poetry_type||'', p.source||'',
+          p.dynasty||'', inferredType, p.source||'',
           tagsField, p.notes||'', p.category||'', p.category_score||0);
         imported++;
       } catch (_) { /* skip row errors */ }
@@ -381,11 +409,53 @@ app.delete('/api/poems/:id', (req, res) => {
 
 app.get('/', (req, res) => {
   const db = getDb();
+  const filterCategory = (req.query.category || '').trim();
+  const filterPoetryType = (req.query.poetry_type || '').trim();
+  const filterQ = (req.query.q || '').trim();
+
+  let sql = 'SELECT * FROM poems WHERE 1=1';
+  const params = [];
+  if (filterCategory) {
+    sql += ' AND category = ?';
+    params.push(filterCategory);
+  }
+  if (filterPoetryType) {
+    sql += ' AND poetry_type = ?';
+    params.push(filterPoetryType);
+  }
+  if (filterQ) {
+    const pat = `%${filterQ}%`;
+    sql += ' AND (title LIKE ? OR content LIKE ? OR subtitle LIKE ? OR author_name LIKE ?)';
+    params.push(pat, pat, pat, pat);
+  }
+  sql += ' ORDER BY author_name, id LIMIT 400';
+  const poems = db.prepare(sql).all(...params);
+
+  const authorCategories = db.prepare(
+    `SELECT DISTINCT category AS v FROM poems WHERE TRIM(category) != '' ORDER BY category`
+  ).all().map((r) => r.v);
+  const authorPoetryTypes = db.prepare(
+    `SELECT DISTINCT poetry_type AS v FROM poems WHERE TRIM(poetry_type) != '' ORDER BY poetry_type`
+  ).all().map((r) => r.v);
+
   const authors = db.prepare('SELECT name, poem_count FROM authors ORDER BY poem_count DESC').all();
-  const stats   = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
-  const poems   = db.prepare('SELECT * FROM poems ORDER BY author_name,id LIMIT 100').all();
-  const total   = db.prepare('SELECT COUNT(*) as c FROM poems').get().c;
-  res.render('index', { title:'爱国诗词集', authors, stats, poems: poems.map(rowToPoem), total, selectedAuthor: null, currentPage:'home' });
+  const stats = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
+  const total = db.prepare('SELECT COUNT(*) as c FROM poems').get().c;
+  res.render('index', {
+    title: '爱国诗词集',
+    authors,
+    stats,
+    poems: poems.map(rowToPoem),
+    total,
+    selectedAuthor: null,
+    currentPage: 'home',
+    headerBrandOnly: true,
+    authorCategories,
+    authorPoetryTypes,
+    filterCategory,
+    filterPoetryType,
+    filterQ,
+  });
 });
 
 app.get('/poems/:id', (req, res) => {
@@ -400,11 +470,55 @@ app.get('/author/:name', (req, res) => {
   const authorName = safeDecodePathParam(req.params.name);
   const authorRow = db.prepare('SELECT name, poem_count FROM authors WHERE name=?').get(authorName);
   if (!authorRow) return res.status(404).render('404', { title: '404', message: '作者未找到' });
-  const poems     = db.prepare('SELECT * FROM poems WHERE author_name=? ORDER BY title').all(authorName);
-  const authors  = db.prepare('SELECT name, poem_count FROM authors ORDER BY poem_count DESC').all();
-  const stats    = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
-  const total    = db.prepare('SELECT COUNT(*) as c FROM poems').get().c;
-  res.render('index', { title: authorName, author: authorRow, authors, stats, poems: poems.map(rowToPoem), total, selectedAuthor: authorName, currentPage: 'home' });
+
+  const filterCategory = (req.query.category || '').trim();
+  const filterPoetryType = (req.query.poetry_type || '').trim();
+  const filterQ = (req.query.q || '').trim();
+
+  let sql = 'SELECT * FROM poems WHERE author_name = ?';
+  const params = [authorName];
+  if (filterCategory) {
+    sql += ' AND category = ?';
+    params.push(filterCategory);
+  }
+  if (filterPoetryType) {
+    sql += ' AND poetry_type = ?';
+    params.push(filterPoetryType);
+  }
+  if (filterQ) {
+    const pat = `%${filterQ}%`;
+    sql += ' AND (title LIKE ? OR content LIKE ? OR subtitle LIKE ?)';
+    params.push(pat, pat, pat);
+  }
+  sql += ' ORDER BY title';
+  const poems = db.prepare(sql).all(...params);
+
+  const authorCategories = db.prepare(
+    `SELECT DISTINCT category AS v FROM poems WHERE author_name = ? AND TRIM(category) != '' ORDER BY category`
+  ).all(authorName).map((r) => r.v);
+  const authorPoetryTypes = db.prepare(
+    `SELECT DISTINCT poetry_type AS v FROM poems WHERE author_name = ? AND TRIM(poetry_type) != '' ORDER BY poetry_type`
+  ).all(authorName).map((r) => r.v);
+
+  const authors = db.prepare('SELECT name, poem_count FROM authors ORDER BY poem_count DESC').all();
+  const stats = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
+  const total = db.prepare('SELECT COUNT(*) as c FROM poems').get().c;
+  res.render('index', {
+    title: authorName,
+    author: authorRow,
+    authors,
+    stats,
+    poems: poems.map(rowToPoem),
+    total,
+    selectedAuthor: authorName,
+    currentPage: 'home',
+    headerBrandOnly: false,
+    authorCategories,
+    authorPoetryTypes,
+    filterCategory,
+    filterPoetryType,
+    filterQ,
+  });
 });
 
 app.get('/search', (req, res) => {

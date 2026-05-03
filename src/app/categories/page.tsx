@@ -76,16 +76,6 @@ export default function CategoriesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/" className="text-blue-600 hover:text-blue-700">
-            ← 返回首页
-          </Link>
-          <h1 className="text-xl font-bold text-gray-800">数据可视化</h1>
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         {/* Overview Stats */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">

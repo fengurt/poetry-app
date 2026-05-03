@@ -1,7 +1,12 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 
-const DB_PATH = path.join(process.cwd(), 'poetry.db');
+// In standalone mode the server runs from .next/standalone/, so resolve
+// the DB path relative to /app (the original workdir before cwd shift).
+const DB_PATH = process.env.DB_PATH
+  || (/standalone[/\\]/.test(__dirname)
+      ? path.resolve(__dirname, '..', '..', '..', 'poetry.db')
+      : path.join(process.cwd(), 'poetry.db'));
 
 // 12种诗词分类
 export const CATEGORIES = [

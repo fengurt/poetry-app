@@ -20,5 +20,9 @@ ENV PORT=3000
 ENV DB_PATH=/app/data/poetry.db
 ENV DATA_FILE=/app/poetry_data.json
 
+# Coolify / Docker health (matches coolify.json healthCheckPath)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000)+'/',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+
 # poetry_data.json seeds empty DB; optional /app/poetry.db in image = classified backup
 CMD ["node", "server.js"]

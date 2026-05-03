@@ -5,6 +5,21 @@ const Database = require("better-sqlite3");
 const fs = require("fs");
 const path = require("path");
 
+// Robustly normalize any CRLF or stray CR in this script itself so Node.js
+// never chokes on invisible carriage-returns in the shebang line.
+function normalizeLf(filePath) {
+  const raw = fs.readFileSync(filePath);
+  const str = raw.toString("utf8");
+  // Replace any CR, CRLF, or bare CR with LF
+  const normalized = str.replace(/\r\n|\r/g, "\n");
+  if (normalized !== str) {
+    fs.writeFileSync(filePath, normalized, "utf8");
+    console.log(`Normalized line endings in ${path.basename(filePath)}`);
+  }
+}
+normalizeLf(__filename);
+
+// ── Paths ────────────────────────────────────────────────────────────────────
 const JSON_PATH = path.join(process.cwd(), "poetry_data.json");
 const DB_PATH   = path.join(process.cwd(), "poetry.db");
 

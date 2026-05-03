@@ -3,7 +3,6 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { PoemCard } from '@/components/PoemCard';
-import { SearchBar } from '@/components/SearchBar';
 import { AuthorFilter } from '@/components/AuthorFilter';
 
 interface Poem {
@@ -93,17 +92,6 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-10 bg-white shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 py-3 sm:py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <h1 className="text-xl font-bold text-gray-800 sm:text-2xl">爱国诗词集</h1>
-            <div className="w-full flex-shrink-0 sm:w-auto sm:max-w-md">
-              <SearchBar />
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8">
         <div className="flex flex-col gap-4 sm:gap-8 lg:flex-row">
           <aside className="hidden flex-shrink-0 lg:block lg:w-64">
