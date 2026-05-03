@@ -1,0 +1,22 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env*.local
+# Named volume / local dev DB (root poetry.db stays in image for migrate backup)
+data/
+*.db-wal
+*.db-shm
+.DS_Store
+.yarn
+.vscode
+coverage
+# Next.js app no longer used by Dockerfile CMD
+src/
+next.config.ts
+next-env.d.ts
+tsconfig.json
+eslint.config.mjs
+# Docs not needed at runtime
+*.md

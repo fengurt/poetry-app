@@ -1,0 +1,44 @@
+{
+  "$schema": "https://coolify.io/schemas/deploy.json",
+  "name": "poetry-app",
+  "version": "1.0.0",
+  "description": "爱国诗词集 — Express 5 + EJS + SQLite（单容器 node server.js）",
+  "icon": "book",
+  "categories": ["nodejs"],
+  "environment": [
+    {
+      "key": "NODE_ENV",
+      "value": "production"
+    },
+    {
+      "key": "PORT",
+      "value": "3000"
+    },
+    {
+      "key": "DB_PATH",
+      "value": "/app/data/poetry.db"
+    },
+    {
+      "key": "DATA_FILE",
+      "value": "/app/poetry_data.json"
+    }
+  ],
+  "build": {
+    "method": "dockerfile",
+    "command": "",
+    "port": 3000,
+    "healthCheckPath": "/"
+  },
+  "settings": {
+    "instantDeploy": true,
+    "previewUrlEnabled": false,
+    "useMarkerAnalyzer": false
+  },
+  "domains": [
+    {
+      "host": "shici.yourdomain.com",
+      "https": true,
+      "enableProxy": true
+    }
+  ]
+}

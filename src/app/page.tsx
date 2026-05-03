@@ -1,65 +1,231 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { PoemCard } from '@/components/PoemCard';
+import { AuthorFilter } from '@/components/AuthorFilter';
+
+interface Poem {
+  id: string;
+  author_name: string;
+  title: string;
+  subtitle: string;
+  content: string;
+  dynasty: string;
+  poetry_type: string;
+  source: string;
+  tags: string[];
+  notes: string;
+  category?: string;
+  category_score?: number;
+}
+
+interface Author {
+  name: string;
+  poem_count: number;
+}
+
+function HomeContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const selectedAuthor = searchParams.get('author')?.trim() || null;
+
+  const [poems, setPoems] = useState<Poem[]>([]);
+  const [authors, setAuthors] = useState<Author[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [categoryStats, setCategoryStats] = useState<{ category: string; count: number }[]>([]);
+
+  useEffect(() => {
+    fetchAuthors();
+    fetchCategoryStats();
+  }, []);
+
+  useEffect(() => {
+    fetchPoems();
+  }, [selectedAuthor]);
+
+  const fetchAuthors = async () => {
+    try {
+      const res = await fetch('/api/authors');
+      const data = await res.json();
+      setAuthors(data.authors || []);
+    } catch (error) {
+      console.error('Failed to fetch authors:', error);
+    }
+  };
+
+  const fetchPoems = async () => {
+    setLoading(true);
+    try {
+      const url = selectedAuthor
+        ? `/api/poems?author=${encodeURIComponent(selectedAuthor)}`
+        : '/api/poems?limit=100';
+      const res = await fetch(url);
+      const data = await res.json();
+      setPoems(data.poems || []);
+      setTotal(data.total || 0);
+    } catch (error) {
+      console.error('Failed to fetch poems:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategoryStats = async () => {
+    try {
+      const res = await fetch('/api/categories');
+      const data = await res.json();
+      setCategoryStats(data.stats || []);
+    } catch (error) {
+      console.error('Failed to fetch category stats:', error);
+    }
+  };
+
+  const handleAuthorSelect = (author: string | null) => {
+    if (author) {
+      router.replace(`/?author=${encodeURIComponent(author)}`, { scroll: false });
+    } else {
+      router.replace('/', { scroll: false });
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+    <div className="min-h-screen bg-gray-50">
+      <main className="mx-auto max-w-7xl px-4 py-4 sm:py-8">
+        <div className="flex flex-col gap-4 sm:gap-8 lg:flex-row">
+          <aside className="hidden flex-shrink-0 lg:block lg:w-64">
+            <div className="space-y-4 lg:sticky lg:top-24">
+              <AuthorFilter
+                authors={authors}
+                selectedAuthor={selectedAuthor}
+                onSelect={handleAuthorSelect}
+              />
+
+              <div className="rounded-lg border bg-white p-4">
+                <h3 className="mb-2 font-bold text-gray-700">数据统计</h3>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p>
+                    诗词总数: <span className="font-semibold">{total}</span>
+                  </p>
+                  <p>
+                    作者人数: <span className="font-semibold">{authors.length}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-lg border bg-white p-4">
+                <h3 className="mb-3 font-bold text-gray-700">分类快速查看</h3>
+                <div className="space-y-1">
+                  {categoryStats.slice(0, 6).map((stat) => (
+                    <a
+                      key={stat.category}
+                      href={`/categories?cat=${encodeURIComponent(stat.category)}`}
+                      className="flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors hover:bg-blue-50"
+                    >
+                      <span className="truncate text-gray-700">{stat.category}</span>
+                      <span className="ml-2 text-xs text-gray-400">{stat.count}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <a
+                  href="/search"
+                  className="block rounded-md bg-gray-100 px-4 py-2 text-center transition-colors hover:bg-gray-200"
+                >
+                  全局搜索
+                </a>
+                <a
+                  href="/tags"
+                  className="block rounded-md bg-gray-100 px-4 py-2 text-center transition-colors hover:bg-gray-200"
+                >
+                  标签管理
+                </a>
+                <a
+                  href="/categories"
+                  className="block rounded-md bg-blue-500 px-4 py-2 text-center text-white transition-colors hover:bg-blue-600"
+                >
+                  数据可视化
+                </a>
+              </div>
+            </div>
+          </aside>
+
+          <div className="-mx-4 overflow-x-auto px-4 lg:hidden">
+            <div className="flex gap-2 pb-2">
+              {categoryStats.slice(0, 8).map((stat) => (
+                <a
+                  key={stat.category}
+                  href={`/categories?cat=${encodeURIComponent(stat.category)}`}
+                  className="flex-shrink-0 rounded-full border bg-white px-3 py-1.5 text-sm"
+                >
+                  {stat.category} ({stat.count})
+                </a>
+              ))}
+              <a
+                href="/categories"
+                className="flex-shrink-0 rounded-full border bg-blue-500 px-3 py-1.5 text-sm text-white"
+              >
+                更多...
+              </a>
+            </div>
+          </div>
+
+          <section className="flex-1">
+            {selectedAuthor ? (
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-gray-600">筛选结果：</span>
+                <span className="text-sm font-semibold text-blue-600">{selectedAuthor}</span>
+                <button
+                  type="button"
+                  onClick={() => handleAuthorSelect(null)}
+                  className="rounded border px-2 py-0.5 text-xs text-gray-500 hover:text-gray-700"
+                >
+                  清除筛选
+                </button>
+              </div>
+            ) : null}
+
+            {loading ? (
+              <div className="flex items-center justify-center py-16 sm:py-20">
+                <div className="text-gray-500">加载中...</div>
+              </div>
+            ) : poems.length === 0 ? (
+              <div className="py-16 text-center sm:py-20">
+                <p className="text-gray-500">暂无诗词数据</p>
+                <p className="mt-2 text-sm text-gray-400">请先导入诗词数据</p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4 text-sm text-gray-500">显示 {poems.length} 首诗词</div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                  {poems.map((poem) => (
+                    <a key={poem.id} href={`/poems/${poem.id}`}>
+                      <PoemCard poem={poem} />
+                    </a>
+                  ))}
+                </div>
+              </>
+            )}
+          </section>
         </div>
       </main>
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+          <div className="text-gray-500">加载中...</div>
+        </div>
+      }
+    >
+      <HomeContent />
+    </Suspense>
   );
 }

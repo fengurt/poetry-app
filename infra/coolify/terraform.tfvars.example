@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+
+coolify_api_base           = "https://coolify.example.com/api/v1"
+coolify_application_uuid   = "00000000-0000-0000-0000-000000000000"
+coolify_token              = "replace-with-api-token"
+redeploy_trigger           = "1"
+deploy_force               = false

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <%- include('partials/mobile-head') %>
+  <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:    '#1a1814',
+            warm:   '#f7f3ee',
+            gold:   '#c5973a',
+            goldLt: '#e8d5a3',
+            cream:  '#faf8f5',
+            muted:  '#8b8178',
+            stroke: '#e8e2d8',
+          },
+          fontFamily: {
+            serif:  ['Noto Serif SC', 'Georgia', 'serif'],
+            sans:   ['Inter', 'system-ui', 'sans-serif'],
+          },
+          spacing: { '18': '4.5rem', '22': '5.5rem' },
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Inter', 'Noto Serif SC', sans-serif; }
+    body { background: #faf8f5; color: #1a1814; }
+
+    /* Ink bleed card effect */
+    .card-ink {
+      background: #fff;
+      border: 1px solid #e8e2d8;
+      box-shadow: 2px 2px 0 #c5973a22, 4px 4px 0 #c5973a11;
+    }
+
+    /* Gold accent underline on headings */
+    .heading-gold { position: relative; }
+    .heading-gold::after {
+      content: '';
+      display: block;
+      width: 2rem; height: 2px;
+      background: linear-gradient(90deg, #c5973a, #e8d5a3);
+      margin-top: 4px;
+    }
+
+    /* Author chip — ink style */
+    .chip-author {
+      font-family: 'Noto Serif SC', serif;
+      background: #1a1814;
+      color: #f7f3ee;
+      border-radius: 2px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Category tag — gold border */
+    .chip-cat {
+      border: 1px solid #c5973a;
+      color: #c5973a;
+      border-radius: 2px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+    }
+
+    /* Poem line — elegant serif spacing */
+    .poem-line {
+      font-family: 'Noto Serif SC', serif;
+      line-height: 1.8;
+      font-size: 1.05rem;
+      color: #2c2824;
+    }
+
+    /* Scroll hide scrollbar */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Bottom nav active — gold dot indicator */
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: #c5973a; }
+
+    /* 首页阅读流：白底纸感 + 横向标签 + 诗词行（对齐移动端诗词阅读列表） */
+    .home-feed-panel {
+      background: #fff;
+      border: 1px solid #e8e4dc;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(26, 24, 20, 0.05);
+    }
+    .home-filter-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid #f2efe9;
+    }
+    @media (min-width: 640px) {
+      .home-filter-row { padding: 0.65rem 1rem; }
+    }
+    .home-filter-label {
+      flex-shrink: 0;
+      font-size: 0.8125rem;
+      color: #8b8178;
+      padding-top: 0.4rem;
+      font-family: Inter, system-ui, sans-serif;
+    }
+    .home-filter-scroll {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.45rem;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+      min-width: 0;
+      flex: 1;
+    }
+    .filter-chip {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      padding: 0.38rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-family: Inter, system-ui, sans-serif;
+      text-decoration: none;
+      color: #454039;
+      background: #f4f1ec;
+      border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .filter-chip--active {
+      background: #fdf8f0;
+      border-color: #c5973a;
+      color: #1a1814;
+      font-weight: 500;
+    }
+    .poem-paper-row {
+      position: relative;
+      display: block;
+      padding: 1rem 0.85rem 0.95rem;
+      border-bottom: 1px solid #ece8e3;
+      -webkit-tap-highlight-color: transparent;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    @media (min-width: 640px) {
+      .poem-paper-row { padding: 1.15rem 1.15rem 1rem; }
+    }
+    .poem-paper-row:last-child { border-bottom: none; }
+    .poem-paper-row:active { background: #faf8f6; }
+    .poem-paper-hitarea {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+    .poem-paper-stack {
+      position: relative;
+      z-index: 1;
+      pointer-events: none;
+      min-width: 0;
+    }
+    .poem-paper-title {
+      font-family: 'Noto Serif SC', 'Georgia', serif;
+      font-size: 1.28rem;
+      font-weight: 700;
+      line-height: 1.32;
+      color: #14120f;
+      margin: 0;
+      letter-spacing: 0.03em;
+    }
+    @media (min-width: 640px) {
+      .poem-paper-title { font-size: 1.5rem; }
+    }
+    .poem-paper-subline {
+      margin: 0.28rem 0 0;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: #a39a91;
+      font-family: Inter, system-ui, sans-serif;
+    }
+    @media (min-width: 640px) {
+      .poem-paper-subline { font-size: 0.9375rem; line-height: 1.55; }
+    }
+    .poem-paper-subline .sep { color: #c9c2b8; margin: 0 0.2em; }
+    .poem-paper-subline__author {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #6b6560;
+      text-decoration: none;
+      pointer-events: auto;
+      position: relative;
+      z-index: 2;
+    }
+    @media (min-width: 640px) {
+      .poem-paper-subline__author { font-size: 1.0625rem; }
+    }
+    .poem-paper-subline__author:hover { color: #c5973a; }
+    .poem-paper-body { margin-top: 0.65rem; }
+    .poem-paper-line {
+      margin: 0;
+      font-family: 'Noto Serif SC', 'Georgia', serif;
+      font-size: 1.0625rem;
+      line-height: 2.05;
+      color: #2a2622;
+      letter-spacing: 0.04em;
+      text-align: start;
+    }
+    @media (min-width: 640px) {
+      .poem-paper-line { font-size: 1.125rem; line-height: 2.1; }
+    }
+    .poem-paper-line--clamp {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 6;
+      overflow: hidden;
+    }
+    .poem-list-card {
+      background: #fff;
+      border: 1px solid #e8e4dc;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body class="min-h-full flex flex-col antialiased pad-bottom-nav">
+
+<%- include('partials/header') %>
+
+<main class="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+
+  <!-- Hero strip -->
+  <div class="mb-6 sm:mb-8 pb-4 sm:pb-6 border-b border-[#e8e2d8] flex flex-col sm:flex-row sm:items-baseline justify-between gap-3 sm:gap-4">
+    <div class="min-w-0">
+      <p class="text-xs uppercase tracking-widest text-[#c5973a] mb-1 font-sans">爱国诗词集</p>
+      <h1 class="text-xl sm:text-2xl font-serif font-semibold text-[#1a1814] heading-gold break-words">
+        <%= title %>
+      </h1>
+    </div>
+    <div class="text-left sm:text-right shrink-0">
+      <span class="text-3xl font-serif font-bold text-[#c5973a]"><%= total %></span>
+      <p class="text-xs text-[#8b8178] mt-0.5">首作品</p>
+    </div>
+  </div>
+
+  <!-- Layout: poem list first on mobile, sidebar on large screens -->
+  <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
+
+    <!-- Sidebar -->
+    <aside class="order-2 lg:order-1 lg:w-56 shrink-0 space-y-4 lg:space-y-5">
+
+      <!-- Author list -->
+      <div class="card-ink p-4">
+        <h3 class="text-xs uppercase tracking-wider text-[#8b8178] mb-3 font-sans">按作者</h3>
+        <div class="space-y-1 max-h-56 sm:max-h-72 overflow-y-auto no-scrollbar">
+          <a href="/" id="btn-all"
+             class="flex flex-col sm:block w-full text-left px-3 py-2.5 sm:py-1.5 text-sm rounded transition-colors no-underline min-h-[2.75rem] sm:min-h-0 justify-center [touch-action:manipulation]
+                    <%= !selectedAuthor ? 'bg-[#1a1814] text-[#f7f3ee] font-medium' : 'text-[#5c5650] hover:bg-[#f0ebe3]' %>">
+            全部 <span class="text-[#c5973a] text-xs ml-1"><%= total %></span>
+          </a>
+          <% authors.forEach(a => { %>
+            <a href="/author/<%= encodeURIComponent(a.name) %>"
+               class="flex flex-col sm:block w-full text-left px-3 py-2.5 sm:py-1.5 text-sm rounded transition-colors no-underline min-h-[2.75rem] sm:min-h-0 justify-center [touch-action:manipulation]
+                      <%= selectedAuthor === a.name ? 'bg-[#1a1814] text-[#f7f3ee]' : 'text-[#5c5650] hover:bg-[#f0ebe3]' %>">
+              <span class="truncate block"><%= a.name %></span>
+              <span class="text-[#c5973a] text-xs"><%= a.poem_count %>首</span>
+            </a>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="card-ink p-4">
+        <h3 class="text-xs uppercase tracking-wider text-[#8b8178] mb-3 font-sans">数据统计</h3>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-[#8b8178]">作者</span>
+            <span class="font-serif font-semibold text-[#1a1814]"><%= authors.length %></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#8b8178]">已分类</span>
+            <span class="font-serif font-semibold text-[#1a1814]"><%= stats.length %></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-[#8b8178]">未分类</span>
+            <span class="font-serif font-semibold text-[#1a1814]"><%= total - stats.reduce((s,r)=>s+r.count,0) %></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="space-y-2">
+        <a href="/tags" class="block text-center py-3 sm:py-2 text-sm border border-[#e8e2d8] rounded bg-white hover:border-[#c5973a] hover:text-[#c5973a] transition-colors min-h-[2.75rem] flex items-center justify-center [touch-action:manipulation]">
+          标签管理
+        </a>
+        <a href="/api/export?format=xlsx" class="block text-center py-3 sm:py-2 text-sm bg-[#c5973a] text-white rounded hover:bg-[#b07d2a] transition-colors min-h-[2.75rem] flex items-center justify-center [touch-action:manipulation]">
+          导出 Excel
+        </a>
+      </div>
+    </aside>
+
+    <!-- Poem List：横向标签 + 纸感阅读流（移动端优先） -->
+    <div class="flex-1 min-w-0 order-1 lg:order-2">
+      <% const listPath = selectedAuthor ? ('/author/' + encodeURIComponent(selectedAuthor)) : '/'; %>
+      <% const mkQs = (cat, pt, qv) => {
+           const parts = [];
+           if (cat) parts.push('category=' + encodeURIComponent(cat));
+           if (pt) parts.push('poetry_type=' + encodeURIComponent(pt));
+           if (qv) parts.push('q=' + encodeURIComponent(qv));
+           return parts.length ? ('?' + parts.join('&')) : '';
+         }; %>
+      <% const authorAllHref = '/' + mkQs(filterCategory, filterPoetryType, filterQ); %>
+      <div class="home-feed-panel mb-4 min-w-0">
+        <div class="flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4 border-b border-[#f0ebe4] bg-[#fdfcfa]">
+          <span class="text-xs font-sans text-[#8b8178]"><%= selectedAuthor ? '本作者作品' : '作品库' %></span>
+          <div class="flex items-center gap-3 shrink-0">
+            <span class="text-xs font-sans text-[#c5973a]"><%= poems.length %> 首</span>
+            <a href="<%= listPath %>"
+               class="text-xs text-[#c5973a] hover:underline font-sans whitespace-nowrap">清除条件</a>
+          </div>
+        </div>
+
+        <div class="home-filter-row">
+          <span class="home-filter-label">作者</span>
+          <div class="home-filter-scroll no-scrollbar">
+            <a href="<%= authorAllHref %>"
+               class="filter-chip <%= !selectedAuthor ? 'filter-chip--active' : '' %>">全部</a>
+            <% authors.forEach(a => { %>
+              <a href="<%= '/author/' + encodeURIComponent(a.name) + mkQs(filterCategory, filterPoetryType, filterQ) %>"
+                 class="filter-chip <%= selectedAuthor === a.name ? 'filter-chip--active' : '' %>"><%= a.name %></a>
+            <% }) %>
+          </div>
+        </div>
+
+        <div class="home-filter-row">
+          <span class="home-filter-label">体裁</span>
+          <div class="home-filter-scroll no-scrollbar">
+            <a href="<%= listPath + mkQs(filterCategory, '', filterQ) %>"
+               class="filter-chip <%= !filterPoetryType ? 'filter-chip--active' : '' %>">全部</a>
+            <% authorPoetryTypes.forEach(t => { %>
+              <a href="<%= listPath + mkQs(filterCategory, t, filterQ) %>"
+                 class="filter-chip <%= filterPoetryType === t ? 'filter-chip--active' : '' %>"><%= t %></a>
+            <% }) %>
+          </div>
+        </div>
+
+        <div class="home-filter-row">
+          <span class="home-filter-label">内容分类</span>
+          <div class="home-filter-scroll no-scrollbar">
+            <a href="<%= listPath + mkQs('', filterPoetryType, filterQ) %>"
+               class="filter-chip <%= !filterCategory ? 'filter-chip--active' : '' %>">全部</a>
+            <% authorCategories.forEach(c => { %>
+              <a href="<%= listPath + mkQs(c, filterPoetryType, filterQ) %>"
+                 class="filter-chip <%= filterCategory === c ? 'filter-chip--active' : '' %>"><%= c %></a>
+            <% }) %>
+          </div>
+        </div>
+
+        <form method="get" action="<%= listPath %>"
+              class="flex gap-2 items-center px-3 py-2.5 sm:px-4 border-b border-[#f0ebe4] bg-[#fdfcfa]">
+          <% if (filterCategory) { %><input type="hidden" name="category" value="<%= filterCategory %>"><% } %>
+          <% if (filterPoetryType) { %><input type="hidden" name="poetry_type" value="<%= filterPoetryType %>"><% } %>
+          <input type="search" name="q" value="<%= filterQ %>" enterkeyhint="search" placeholder="关键词：标题 / 正文 / 副题"
+                 class="flex-1 min-w-0 text-sm border border-[#e8e2d8] rounded-full px-3 py-2 bg-white text-[#1a1814] placeholder:text-[#c9c2b8] focus:outline-none focus:border-[#c5973a] font-sans">
+          <button type="submit"
+                  class="shrink-0 px-4 py-2 text-sm rounded-full bg-[#1a1814] text-white font-sans hover:bg-[#c5973a] transition-colors [touch-action:manipulation]">
+            搜索
+          </button>
+        </form>
+
+        <% if (poems.length === 0) { %>
+          <div class="px-4 py-12 text-center border-t border-[#f0ebe4]">
+            <p class="text-sm text-[#8b8178] font-serif">暂无诗词</p>
+          </div>
+        <% } %>
+
+        <% poems.forEach(p => { %>
+          <% 
+            const rawContent = p.content || '';
+            const poemFlat = rawContent.replace(/\s+/g, ' ').trim();
+            const verseLines = rawContent.split(/\n/).map(s => s.trim()).filter(Boolean);
+            const verseIsMultiline = verseLines.length > 1;
+            const previewMaxChars = 240;
+            const previewMaxLines = 5;
+            let previewLines = [];
+            let used = 0;
+            if (verseLines.length > 1) {
+              for (const ln of verseLines) {
+                if (previewLines.length >= previewMaxLines) break;
+                if (used + ln.length > previewMaxChars) {
+                  const rest = previewMaxChars - used;
+                  if (rest > 8) previewLines.push(ln.slice(0, rest) + '…');
+                  used = previewMaxChars;
+                  break;
+                }
+                previewLines.push(ln);
+                used += ln.length;
+              }
+            }
+            if (previewLines.length === 0) {
+              const one = poemFlat.slice(0, previewMaxChars) + (poemFlat.length > previewMaxChars ? '…' : '');
+              previewLines = [one];
+            }
+          %>
+          <% const tagsArr = p.tags || []; %>
+          <% const yearTag = tagsArr.find(function (t) { return /^\d{4}$/.test(String(t)); }); %>
+          <article class="poem-paper-row min-w-0">
+            <a href="/poems/<%= p.id %>"
+               class="poem-paper-hitarea [touch-action:manipulation]"
+               aria-label="查看全文"></a>
+            <div class="poem-paper-stack">
+              <h3 class="poem-paper-title line-clamp-3"><%= p.title %></h3>
+              <p class="poem-paper-subline">
+                <a class="poem-paper-subline__author" href="/author/<%= encodeURIComponent(p.author_name) %>"><%= p.author_name %></a>
+                <% if (p.poetry_type) { %><span class="sep">·</span><span><%= p.poetry_type %></span><% } %>
+                <% if (p.category) { %><span class="sep">·</span><span><%= p.category %></span><% } %>
+                <% if (yearTag) { %><span class="sep">·</span><span><%= yearTag %></span><% } %>
+              </p>
+              <div class="poem-paper-body" aria-label="节选">
+                <% previewLines.forEach(function (line) { %>
+                  <p class="poem-paper-line<%= verseIsMultiline ? '' : ' poem-paper-line--clamp' %>"><%= line %></p>
+                <% }) %>
+              </div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/nav') %>
+
+</body>
+</html>

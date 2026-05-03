@@ -39,3 +39,18 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Express / SQLite local
+/data/
+*.db-wal
+*.db-shm
+poetry.db.classified
+/poetry.db
+scripts/poetry.db
+
+# OpenTofu / Terraform (infra/coolify)
+infra/**/.terraform/
+infra/**/*.tfstate
+infra/**/*.tfstate.*
+infra/**/terraform.tfvars
+infra/**/*.auto.tfvars
