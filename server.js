@@ -13,6 +13,7 @@ const APP_DIR  = __dirname;
 const DB_PATH  = process.env.DB_PATH  || path.join(APP_DIR, 'data', 'poetry.db');
 const DATA_FILE = process.env.DATA_FILE || path.join(APP_DIR, 'poetry_data.json');
 const { inferPoetryType } = require('./lib/inferPoetryType');
+const { applyContentCategoriesToEmpty } = require('./lib/autoClassifyCategory');
 
 // ── DB singleton ────────────────────────────────────────────────────────────────
 let _db = null;
@@ -191,6 +192,10 @@ fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 migrate();
 runPoetryTypeInferenceIfNeeded();
+const categoryFillCount = applyContentCategoriesToEmpty(getDb());
+if (categoryFillCount > 0) {
+  console.log(`[migrate] Auto-filled 内容分类 for ${categoryFillCount} poems (had blank category).`);
+}
 
 // ── Express App ───────────────────────────────────────────────────────────────
 const app  = express();
@@ -289,19 +294,36 @@ app.get('/api/export', async (req, res) => {
   }
 
   if (format === 'xlsx') {
+    const XLSX_CELL_MAX_CHARS = 32700;
+    const truncateForXlsx = (value) => {
+      const flat = String(value ?? '').replace(/\r\n/g, '\n').replace(/\n/g, ' ');
+      if (flat.length <= XLSX_CELL_MAX_CHARS) return flat;
+      return flat.slice(0, XLSX_CELL_MAX_CHARS) + '…';
+    };
     const ExcelJS = require('exceljs');
     const poems = db.prepare('SELECT * FROM poems ORDER BY author_name, title').all();
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('诗词');
     ws.columns = [
-      { header: '标题', key: 'title',      width: 22 },
+      { header: '标题', key: 'title', width: 22 },
+      { header: '副题', key: 'subtitle', width: 16 },
       { header: '作者', key: 'author_name', width: 12 },
-      { header: '朝代', key: 'dynasty',     width: 8  },
+      { header: '朝代', key: 'dynasty', width: 8 },
       { header: '体裁', key: 'poetry_type', width: 10 },
       { header: '内容分类', key: 'category', width: 14 },
-      { header: '内容', key: 'content',      width: 40 },
+      { header: '标签', key: 'tags_display', width: 18 },
+      { header: '备注', key: 'notes', width: 20 },
+      { header: '内容', key: 'content', width: 50 },
     ];
-    ws.addRows(poems.map(p => ({ ...p, content: p.content.replace(/\n/g, ' ') })));
+    ws.addRows(
+      poems.map((p) => ({
+        ...p,
+        subtitle: p.subtitle || '',
+        tags_display: parseTags(p.tags).join('、'),
+        notes: truncateForXlsx(p.notes || ''),
+        content: truncateForXlsx(p.content),
+      }))
+    );
     const buf = await wb.xlsx.writeBuffer();
     res.setHeader('Content-Disposition', 'attachment; filename="poetry.xlsx"');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

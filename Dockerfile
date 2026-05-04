@@ -1,6 +1,7 @@
 # Simple single-stage Dockerfile — no build step needed
 # Express serves pre-built EJS templates directly
-FROM node:22-slim
+# Pin amd64 so better-sqlite3 native binary matches Coolify / x86_64 hosts
+FROM --platform=linux/amd64 node:22-slim
 
 WORKDIR /app
 

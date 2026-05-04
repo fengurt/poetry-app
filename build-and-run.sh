@@ -53,7 +53,7 @@ teardown() {
 # ── Build ──────────────────────────────────────────────────
 build_image() {
   log "Building image…"
-  docker build -t "${IMAGE}" "${REPO_ROOT}"
+  docker build --platform linux/amd64 -t "${IMAGE}" "${REPO_ROOT}"
   log "Image built."
 }
 
