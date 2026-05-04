@@ -13,7 +13,10 @@ const APP_DIR  = __dirname;
 const DB_PATH  = process.env.DB_PATH  || path.join(APP_DIR, 'data', 'poetry.db');
 const DATA_FILE = process.env.DATA_FILE || path.join(APP_DIR, 'poetry_data.json');
 const { inferPoetryType } = require('./lib/inferPoetryType');
-const { applyContentCategoriesToEmpty, classifyPoem } = require('./lib/autoClassifyCategory');
+const { applyContentCategoriesToEmpty, trimCategoryDisplay } = require('./lib/autoClassifyCategory');
+const { parseTags, publishYearDisplayFromTagList, nonYearTagsFromList, YEAR_TAG_RE } = require('./lib/poemTags');
+const { resolveSubtitleDisplay } = require('./lib/poemSubtitle');
+const { buildXlsxBufferFromDb } = require('./lib/xlsxExport');
 
 // ── DB singleton ────────────────────────────────────────────────────────────────
 let _db = null;
@@ -60,28 +63,6 @@ function getDb() {
   return _db;
 }
 
-function parseTags(json) {
-  if (!json) return [];
-  try { return JSON.parse(json); } catch { return []; }
-}
-
-const YEAR_TAG_RE = /^\d{4}$/;
-
-/** 发布年份：tags 中四位数字标签（如 2026），去重后以顿号连接；无则空串 */
-function publishYearDisplayFromTagList(tagList) {
-  const list = (tagList || []).map((t) => String(t).trim()).filter(Boolean);
-  const years = [...new Set(list.filter((t) => YEAR_TAG_RE.test(t)))];
-  return years.join('、');
-}
-
-/** 非年份标签（发布年份以外的标签），用于列表/详情展示 */
-function nonYearTagsFromList(tagList) {
-  return (tagList || [])
-    .map((t) => String(t).trim())
-    .filter(Boolean)
-    .filter((t) => !YEAR_TAG_RE.test(t));
-}
-
 function rowToPoem(row) {
   const tagsArr = parseTags(row.tags);
   return {
@@ -89,10 +70,10 @@ function rowToPoem(row) {
     tags: tagsArr,
     publishYear: publishYearDisplayFromTagList(tagsArr),
     nonYearTags: nonYearTagsFromList(tagsArr),
-    subtitle:       row.subtitle    || '',
+    subtitle:       resolveSubtitleDisplay(row) || '',
     dynasty:        row.dynasty     || '现代',
     poetry_type:    row.poetry_type || '诗',
-    category:       row.category    || '',
+    category:       trimCategoryDisplay(row.category) || '',
     category_score: row.category_score || 0,
   };
 }
@@ -329,50 +310,10 @@ app.get('/api/export', async (req, res) => {
   }
 
   if (format === 'xlsx') {
-    const XLSX_CELL_MAX_CHARS = 32700;
-    const truncateForXlsx = (value) => {
-      const flat = String(value ?? '').replace(/\r\n/g, '\n').replace(/\n/g, ' ');
-      if (flat.length <= XLSX_CELL_MAX_CHARS) return flat;
-      return flat.slice(0, XLSX_CELL_MAX_CHARS) + '…';
-    };
-    const ExcelJS = require('exceljs');
-    const poems = db.prepare('SELECT * FROM poems ORDER BY author_name, title').all();
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('诗词');
-    ws.columns = [
-      { header: '标题', key: 'title', width: 22 },
-      { header: '副题', key: 'subtitle', width: 16 },
-      { header: '作者', key: 'author_name', width: 12 },
-      { header: '朝代', key: 'dynasty', width: 8 },
-      { header: '体裁', key: 'poetry_type', width: 10 },
-      { header: '内容分类', key: 'category', width: 14 },
-      { header: '发布年份', key: 'publish_year', width: 12 },
-      { header: '标签', key: 'tags_all', width: 22 },
-      { header: '备注', key: 'notes', width: 20 },
-      { header: '内容', key: 'content', width: 50 },
-    ];
-    // ExcelJS 仅当 value[key] !== undefined 才写入单元格；显式字段 + 空分类回填，避免「内容分类」整列空白
-    ws.addRows(
-      poems.map((p) => {
-        const rawCategory = p.category != null ? String(p.category).trim() : '';
-        const category = rawCategory || classifyPoem(p.title, p.content).category;
-        return {
-          title: p.title ?? '',
-          subtitle: p.subtitle != null ? String(p.subtitle) : '',
-          author_name: p.author_name ?? '',
-          dynasty: p.dynasty != null ? String(p.dynasty) : '',
-          poetry_type: p.poetry_type != null ? String(p.poetry_type) : '',
-          category,
-          publish_year: publishYearDisplayFromTagList(parseTags(p.tags)),
-          tags_all: parseTags(p.tags).join('、'),
-          notes: truncateForXlsx(p.notes || ''),
-          content: truncateForXlsx(p.content),
-        };
-      })
-    );
-    const buf = await wb.xlsx.writeBuffer();
+    const buf = await buildXlsxBufferFromDb(db);
     res.setHeader('Content-Disposition', 'attachment; filename="poetry.xlsx"');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('X-Poetry-Export-Schema', '2');
     return res.send(buf);
   }
 

@@ -42,6 +42,37 @@ npm run preview
 
 若在 **ARM 本机** 交叉构建供 amd64 服务器使用，请始终带 `--platform linux/amd64`（脚本已包含）。
 
+BuildKit 可能对 `FROM --platform=linux/amd64` 提示常量平台警告，可忽略；固定平台是为 **better-sqlite3** 与目标机一致。
+
+### 发布前自检（仓库内）
+
+```bash
+cd poetry-app
+npm ci   # 或 npm install
+npm run verify
+docker build --platform linux/amd64 -t poetry-app:latest .
+```
+
+`verify` 含 `node --check` 与 `scripts/test-xlsx-export.js`（分类、副标题题记、标签/年份、超长正文截断）。
+
+---
+
+## 确认线上已是新导出格式（与 amd64 无关）
+
+若下载的 xlsx 第一行仍为 **「副题」**、且无 **「发布年份」** 列（旧版共 9 列），说明 **仍在跑旧镜像或旧容器**，不是 amd64 本身导致导出逻辑错误；请在 Coolify 等平台 **重新构建并部署** 当前仓库镜像。
+
+新版本在 `GET /api/export?format=xlsx` 的响应中会带：
+
+`X-Poetry-Export-Schema: 2`
+
+不下载文件即可检查：
+
+```bash
+curl -sSIL 'https://你的域名/api/export?format=xlsx' | grep -i poetry-export
+```
+
+无此行则请求未到达含新 `lib/xlsxExport.js` 的实例。
+
 ---
 
 ## 两种部署方式（对齐同一套环境变量）
@@ -110,8 +141,9 @@ npm run preview
 |--------|------|
 | 首页或列表诗词总数 | 与本地同版本 `poetry_data.json` 导入后一致 |
 | 「内容分类」页 / 筛选 | 各分类有分布，不应长期全部空白 |
-| `GET /api/export?format=xlsx` | 可下载；含「发布年份」与「标签」列；超长正文安全截断 |
+| `GET /api/export?format=xlsx` | 可下载；列含副标题（显式 `subtitle` 或正文首行 `——` 题记）、内容分类、发布年份、标签、正文等；超长正文安全截断 |
 | `GET /api/export?format=bycategory` | 各章节能看到对应分类下的作品 |
+| `npm run verify`（构建镜像前） | 全部通过 |
 
 若总数不对：先查 **`DATA_FILE`** 与 **`DB_PATH`** 是否按上表配置，以及 Coolify / compose 是否误把 JSON 指到空卷路径。
 
