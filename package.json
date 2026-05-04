@@ -6,6 +6,8 @@
     "start": "node server.js",
     "dev":  "node server.js",
     "check": "node --check server.js",
+    "test:xlsx": "node scripts/test-xlsx-export.js",
+    "verify": "node --check server.js && node --check lib/autoClassifyCategory.js && node --check lib/inferPoetryType.js && node --check lib/poemSubtitle.js && node --check lib/poemTags.js && node --check lib/xlsxExport.js && npm run test:xlsx",
     "preview": "bash scripts/preview-local.sh"
   },
   "dependencies": {

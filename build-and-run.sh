@@ -67,6 +67,8 @@ run_app() {
     -e PORT=3000 \
     -e NODE_ENV=production \
     -e TZ=Asia/Shanghai \
+    -e DB_PATH=/app/data/poetry.db \
+    -e DATA_FILE=/app/poetry_data.json \
     -v "${APP_NAME}-data:/app/data" \
     "${IMAGE}"
 

@@ -11,6 +11,8 @@ npm run preview
 
 Open [http://localhost:3000](http://localhost:3000). Or: `npm start` / `npm run dev` (same server).
 
+发布 / 打 Docker 镜像前建议：`npm run verify`（语法检查 + Excel 导出回归脚本）。
+
 ## Docker (local)
 
 ```bash
