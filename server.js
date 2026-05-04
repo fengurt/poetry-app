@@ -13,7 +13,7 @@ const APP_DIR  = __dirname;
 const DB_PATH  = process.env.DB_PATH  || path.join(APP_DIR, 'data', 'poetry.db');
 const DATA_FILE = process.env.DATA_FILE || path.join(APP_DIR, 'poetry_data.json');
 const { inferPoetryType } = require('./lib/inferPoetryType');
-const { applyContentCategoriesToEmpty } = require('./lib/autoClassifyCategory');
+const { applyContentCategoriesToEmpty, classifyPoem } = require('./lib/autoClassifyCategory');
 
 // ── DB singleton ────────────────────────────────────────────────────────────────
 let _db = null;
@@ -65,16 +65,41 @@ function parseTags(json) {
   try { return JSON.parse(json); } catch { return []; }
 }
 
+const YEAR_TAG_RE = /^\d{4}$/;
+
+/** 发布年份：tags 中四位数字标签（如 2026），去重后以顿号连接；无则空串 */
+function publishYearDisplayFromTagList(tagList) {
+  const list = (tagList || []).map((t) => String(t).trim()).filter(Boolean);
+  const years = [...new Set(list.filter((t) => YEAR_TAG_RE.test(t)))];
+  return years.join('、');
+}
+
+/** 非年份标签（发布年份以外的标签），用于列表/详情展示 */
+function nonYearTagsFromList(tagList) {
+  return (tagList || [])
+    .map((t) => String(t).trim())
+    .filter(Boolean)
+    .filter((t) => !YEAR_TAG_RE.test(t));
+}
+
 function rowToPoem(row) {
+  const tagsArr = parseTags(row.tags);
   return {
     ...row,
-    tags:          parseTags(row.tags),
+    tags: tagsArr,
+    publishYear: publishYearDisplayFromTagList(tagsArr),
+    nonYearTags: nonYearTagsFromList(tagsArr),
     subtitle:       row.subtitle    || '',
     dynasty:        row.dynasty     || '现代',
     poetry_type:    row.poetry_type || '诗',
     category:       row.category    || '',
     category_score: row.category_score || 0,
   };
+}
+
+/** Docx 导出用正文行；content 为 null/undefined 时不抛错。 */
+function poemContentLines(content) {
+  return String(content ?? '').split(/\r?\n/).filter(Boolean);
 }
 
 /** Rebuild `authors` from `poems` (after import / delete). */
@@ -126,7 +151,9 @@ function runPoetryTypeInferenceIfNeeded() {
 function migrate() {
   const db = getDb();
 
-  const catCount = db.prepare("SELECT COUNT(*) as c FROM poems WHERE category != ''").get().c;
+  const catCount = db.prepare(
+    "SELECT COUNT(*) AS c FROM poems WHERE TRIM(COALESCE(category,'')) != ''"
+  ).get().c;
   if (catCount > 100) {
     console.log(`[migrate] DB already has ${catCount} categorized poems — using it.`);
     return;
@@ -137,7 +164,9 @@ function migrate() {
   if (backupPath !== DB_PATH && fs.existsSync(backupPath)) {
     try {
       const backup = new Database(backupPath, { readonly: true, timeout: 3000 });
-      const backupCat = backup.prepare("SELECT COUNT(*) as c FROM poems WHERE category != ''").get().c;
+      const backupCat = backup.prepare(
+        "SELECT COUNT(*) AS c FROM poems WHERE TRIM(COALESCE(category,'')) != ''"
+      ).get().c;
       backup.close();
       if (backupCat > catCount) {
         console.log(`[migrate] Backup DB (${backupCat} cats) better than current (${catCount}) — copying over.`);
@@ -168,8 +197,9 @@ function migrate() {
   `);
   const authorCounts = {};
   const tx = db.transaction((rows) => {
+    const defaultYearTag = String(new Date().getFullYear());
     for (const p of rows) {
-      const tags = ['2026'];
+      const tags = [defaultYearTag];
       if (Array.isArray(p.tags)) tags.push(...p.tags);
       insertPoem.run(
         p.id, p.author_name, p.title, p.subtitle||'', p.content,
@@ -240,7 +270,7 @@ app.get('/api/authors', (req, res) => {
 app.get('/api/categories', (req, res) => {
   const db = getDb();
   res.json({
-    stats:      db.prepare(`SELECT category,COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all(),
+    stats:      db.prepare(`SELECT category,COUNT(*) as count FROM poems WHERE TRIM(COALESCE(category,''))!='' GROUP BY category ORDER BY count DESC`).all(),
     authors:     db.prepare('SELECT name, poem_count FROM authors ORDER BY poem_count DESC').all(),
     totalPoems:  db.prepare('SELECT COUNT(*) as c FROM poems').get().c,
     categories:  CATEGORIES,
@@ -249,13 +279,16 @@ app.get('/api/categories', (req, res) => {
 
 app.get('/api/tags', (req, res) => {
   const db = getDb();
-  const categories   = db.prepare(`SELECT category as name, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
+  const categories   = db.prepare(`SELECT category as name, COUNT(*) as count FROM poems WHERE TRIM(COALESCE(category,''))!='' GROUP BY category ORDER BY count DESC`).all();
   const authors     = db.prepare(`SELECT author_name as name, COUNT(*) as count FROM poems GROUP BY author_name ORDER BY count DESC`).all();
   const poetryTypes = db.prepare(`SELECT poetry_type as name, COUNT(*) as count FROM poems GROUP BY poetry_type ORDER BY count DESC`).all();
   const dynasties   = db.prepare(`SELECT dynasty as name, COUNT(*) as count FROM poems GROUP BY dynasty ORDER BY count DESC`).all();
   const tagCounts = {};
   for (const row of db.prepare('SELECT tags FROM poems').all()) {
-    for (const t of parseTags(row.tags)) tagCounts[t] = (tagCounts[t]||0) + 1;
+    for (const t of parseTags(row.tags)) {
+      const s = String(t).trim();
+      if (s) tagCounts[s] = (tagCounts[s] || 0) + 1;
+    }
   }
   const customTags = Object.entries(tagCounts).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count);
   res.json({ categories, authors, poetryTypes, dynasties, customTags });
@@ -278,13 +311,15 @@ app.get('/api/export', async (req, res) => {
   try {
   const format = req.query.format || 'docx';
   const db = getDb();
+  // 各导出格式都依赖库内 category；bycategory 用 WHERE category=?，未补全时整类缺失
+  applyContentCategoriesToEmpty(db);
 
   if (format === 'docx') {
     const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
     const poems = db.prepare('SELECT * FROM poems ORDER BY author_name, title').all();
     const children = poems.flatMap(p => [
       new Paragraph({ children: [new TextRun({ text: `${p.author_name} 《${p.title}》`, bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 }),
-      ...p.content.split('\n').filter(Boolean).map(l => new Paragraph({ children: [new TextRun(l)] })),
+      ...poemContentLines(p.content).map(l => new Paragraph({ children: [new TextRun(l)] })),
       new Paragraph({ children: [] }),
     ]);
     const buf = await Packer.toBuffer(new Document({ sections: [{ children }] }));
@@ -311,18 +346,29 @@ app.get('/api/export', async (req, res) => {
       { header: '朝代', key: 'dynasty', width: 8 },
       { header: '体裁', key: 'poetry_type', width: 10 },
       { header: '内容分类', key: 'category', width: 14 },
-      { header: '标签', key: 'tags_display', width: 18 },
+      { header: '发布年份', key: 'publish_year', width: 12 },
+      { header: '标签', key: 'tags_all', width: 22 },
       { header: '备注', key: 'notes', width: 20 },
       { header: '内容', key: 'content', width: 50 },
     ];
+    // ExcelJS 仅当 value[key] !== undefined 才写入单元格；显式字段 + 空分类回填，避免「内容分类」整列空白
     ws.addRows(
-      poems.map((p) => ({
-        ...p,
-        subtitle: p.subtitle || '',
-        tags_display: parseTags(p.tags).join('、'),
-        notes: truncateForXlsx(p.notes || ''),
-        content: truncateForXlsx(p.content),
-      }))
+      poems.map((p) => {
+        const rawCategory = p.category != null ? String(p.category).trim() : '';
+        const category = rawCategory || classifyPoem(p.title, p.content).category;
+        return {
+          title: p.title ?? '',
+          subtitle: p.subtitle != null ? String(p.subtitle) : '',
+          author_name: p.author_name ?? '',
+          dynasty: p.dynasty != null ? String(p.dynasty) : '',
+          poetry_type: p.poetry_type != null ? String(p.poetry_type) : '',
+          category,
+          publish_year: publishYearDisplayFromTagList(parseTags(p.tags)),
+          tags_all: parseTags(p.tags).join('、'),
+          notes: truncateForXlsx(p.notes || ''),
+          content: truncateForXlsx(p.content),
+        };
+      })
     );
     const buf = await wb.xlsx.writeBuffer();
     res.setHeader('Content-Disposition', 'attachment; filename="poetry.xlsx"');
@@ -339,7 +385,7 @@ app.get('/api/export', async (req, res) => {
         new Paragraph({ children: [new TextRun({ text: `${a.name} (${poems.length}首)`, bold: true, size: 32 })], heading: HeadingLevel.HEADING_1 }),
         ...poems.flatMap(p => [
           new Paragraph({ children: [new TextRun({ text: p.title, bold: true })] }),
-          ...p.content.split('\n').filter(Boolean).map(l => new Paragraph({ children: [new TextRun(l)] })),
+          ...poemContentLines(p.content).map(l => new Paragraph({ children: [new TextRun(l)] })),
           new Paragraph({ children: [] }),
         ]),
       ];
@@ -358,7 +404,7 @@ app.get('/api/export', async (req, res) => {
         new Paragraph({ children: [new TextRun({ text: `${cat} (${poems.length}首)`, bold: true, size: 32 })], heading: HeadingLevel.HEADING_1 }),
         ...poems.flatMap(p => [
           new Paragraph({ children: [new TextRun({ text: `${p.author_name} 《${p.title}》`, bold: true })] }),
-          ...p.content.split('\n').filter(Boolean).map(l => new Paragraph({ children: [new TextRun(l)] })),
+          ...poemContentLines(p.content).map(l => new Paragraph({ children: [new TextRun(l)] })),
           new Paragraph({ children: [] }),
         ]),
       ];
@@ -392,16 +438,17 @@ app.post('/api/poems/import', (req, res) => {
   const tx = db.transaction((rows) => {
     for (const p of rows) {
       try {
-        let tagsField;
-        if (Array.isArray(p.tags)) tagsField = JSON.stringify(p.tags);
+        let tagArr = [];
+        if (Array.isArray(p.tags)) tagArr = p.tags.map((t) => String(t));
         else if (typeof p.tags === 'string') {
           try {
-            JSON.parse(p.tags);
-            tagsField = p.tags;
-          } catch {
-            tagsField = JSON.stringify([]);
-          }
-        } else tagsField = JSON.stringify([]);
+            const parsed = JSON.parse(p.tags);
+            if (Array.isArray(parsed)) tagArr = parsed.map((t) => String(t));
+          } catch { /* keep tagArr empty */ }
+        }
+        const defaultYear = String(new Date().getFullYear());
+        if (!tagArr.some((t) => YEAR_TAG_RE.test(String(t).trim()))) tagArr.unshift(defaultYear);
+        const tagsField = JSON.stringify(tagArr);
         const inferredType = inferPoetryType({
           title: p.title,
           content: p.content || '',
@@ -417,6 +464,7 @@ app.post('/api/poems/import', (req, res) => {
   });
   tx(poems);
   syncAuthorCounts();
+  applyContentCategoriesToEmpty(db);
   res.json({ imported });
 });
 
@@ -454,14 +502,14 @@ app.get('/', (req, res) => {
   const poems = db.prepare(sql).all(...params);
 
   const authorCategories = db.prepare(
-    `SELECT DISTINCT category AS v FROM poems WHERE TRIM(category) != '' ORDER BY category`
+    `SELECT DISTINCT category AS v FROM poems WHERE TRIM(COALESCE(category,'')) != '' ORDER BY category`
   ).all().map((r) => r.v);
   const authorPoetryTypes = db.prepare(
     `SELECT DISTINCT poetry_type AS v FROM poems WHERE TRIM(poetry_type) != '' ORDER BY poetry_type`
   ).all().map((r) => r.v);
 
   const authors = db.prepare('SELECT name, poem_count FROM authors ORDER BY poem_count DESC').all();
-  const stats = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
+  const stats = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE TRIM(COALESCE(category,''))!='' GROUP BY category ORDER BY count DESC`).all();
   const total = db.prepare('SELECT COUNT(*) as c FROM poems').get().c;
   res.render('index', {
     title: '爱国诗词集',
@@ -516,14 +564,14 @@ app.get('/author/:name', (req, res) => {
   const poems = db.prepare(sql).all(...params);
 
   const authorCategories = db.prepare(
-    `SELECT DISTINCT category AS v FROM poems WHERE author_name = ? AND TRIM(category) != '' ORDER BY category`
+    `SELECT DISTINCT category AS v FROM poems WHERE author_name = ? AND TRIM(COALESCE(category,'')) != '' ORDER BY category`
   ).all(authorName).map((r) => r.v);
   const authorPoetryTypes = db.prepare(
     `SELECT DISTINCT poetry_type AS v FROM poems WHERE author_name = ? AND TRIM(poetry_type) != '' ORDER BY poetry_type`
   ).all(authorName).map((r) => r.v);
 
   const authors = db.prepare('SELECT name, poem_count FROM authors ORDER BY poem_count DESC').all();
-  const stats = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
+  const stats = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE TRIM(COALESCE(category,''))!='' GROUP BY category ORDER BY count DESC`).all();
   const total = db.prepare('SELECT COUNT(*) as c FROM poems').get().c;
   res.render('index', {
     title: authorName,
@@ -558,7 +606,7 @@ app.get('/search', (req, res) => {
 
 app.get('/categories', (req, res) => {
   const db = getDb();
-  const stats      = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
+  const stats      = db.prepare(`SELECT category, COUNT(*) as count FROM poems WHERE TRIM(COALESCE(category,''))!='' GROUP BY category ORDER BY count DESC`).all();
   const authors    = db.prepare('SELECT name, poem_count FROM authors ORDER BY poem_count DESC').all();
   const totalPoems = db.prepare('SELECT COUNT(*) as c FROM poems').get().c;
   res.render('categories', { title:'数据可视化', stats, authors, totalPoems, currentPage:'categories' });
@@ -566,15 +614,18 @@ app.get('/categories', (req, res) => {
 
 app.get('/tags', (req, res) => {
   const db = getDb();
-  const categories   = db.prepare(`SELECT category as name, COUNT(*) as count FROM poems WHERE category!='' GROUP BY category ORDER BY count DESC`).all();
+  const categories   = db.prepare(`SELECT category as name, COUNT(*) as count FROM poems WHERE TRIM(COALESCE(category,''))!='' GROUP BY category ORDER BY count DESC`).all();
   const authors     = db.prepare(`SELECT author_name as name, COUNT(*) as count FROM poems GROUP BY author_name ORDER BY count DESC`).all();
   const poetryTypes = db.prepare(`SELECT poetry_type as name, COUNT(*) as count FROM poems GROUP BY poetry_type ORDER BY count DESC`).all();
   const tagCounts = {};
   for (const row of db.prepare('SELECT tags FROM poems').all()) {
-    for (const t of parseTags(row.tags)) tagCounts[t] = (tagCounts[t]||0) + 1;
+    for (const t of parseTags(row.tags)) {
+      const s = String(t).trim();
+      if (s) tagCounts[s] = (tagCounts[s] || 0) + 1;
+    }
   }
   const customTags = Object.entries(tagCounts).map(([n,c]) => ({ name:n, count:c })).sort((a,b) => b.count-a.count);
-  res.render('tags', { title:'标签管理', categories, authors, poetryTypes, customTags, currentPage:'tags' });
+  res.render('tags', { title: '标签 · 诗词集', categories, authors, poetryTypes, customTags, currentPage: 'tags' });
 });
 
 app.use((req, res) => res.status(404).render('404', { title:'404' }));

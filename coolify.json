@@ -21,6 +21,10 @@
     {
       "key": "DATA_FILE",
       "value": "/app/poetry_data.json"
+    },
+    {
+      "key": "TZ",
+      "value": "Asia/Shanghai"
     }
   ],
   "build": {

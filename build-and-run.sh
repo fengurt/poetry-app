@@ -65,6 +65,8 @@ run_app() {
     --restart unless-stopped \
     -p "${PORT}:3000" \
     -e PORT=3000 \
+    -e NODE_ENV=production \
+    -e TZ=Asia/Shanghai \
     -v "${APP_NAME}-data:/app/data" \
     "${IMAGE}"
 

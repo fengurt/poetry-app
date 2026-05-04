@@ -14,6 +14,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      # 种子/导入时默认写入 tags 的「当前年」来自容器本地日期；与本地一致建议设为中国时区
+      TZ: Asia/Shanghai
       DB_PATH: /app/data/poetry.db
       # JSON 在镜像内 /app；卷只持久化 SQLite，勿把 DATA_FILE 指到空卷路径
       DATA_FILE: /app/poetry_data.json

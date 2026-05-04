@@ -69,10 +69,10 @@ const updateAuthorStmt = db.prepare(`
   ON CONFLICT(name) DO UPDATE SET poem_count = ?
 `);
 
+const defaultYearTag = String(new Date().getFullYear());
 for (let i = 0; i < poemsData.length; i++) {
   const poem = poemsData[i];
-  // Default tags include '2026'
-  const tags = ['2026'];
+  const tags = [defaultYearTag];
   if (poem.tags && Array.isArray(poem.tags)) {
     tags.push(...poem.tags);
   }

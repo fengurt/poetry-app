@@ -48,7 +48,7 @@
       <button type="button" onclick="showTab('categories')" id="btn-categories" class="tab-btn active snap-start shrink-0">内容分类 <span class="ml-1 text-[#8b8178]">(<%= categories.length %>)</span></button>
       <button type="button" onclick="showTab('authors')"     id="btn-authors"     class="tab-btn snap-start shrink-0">作者 <span class="ml-1 text-[#8b8178]">(<%= authors.length %>)</span></button>
       <button type="button" onclick="showTab('types')"       id="btn-types"      class="tab-btn snap-start shrink-0">体裁 <span class="ml-1 text-[#8b8178]">(<%= poetryTypes.length %>)</span></button>
-      <button type="button" onclick="showTab('custom')"      id="btn-custom"     class="tab-btn snap-start shrink-0">标签 <span class="ml-1 text-[#8b8178]">(<%= customTags.length %>)</span></button>
+      <button type="button" onclick="showTab('custom')" id="btn-custom" title="含四位数字的发布年份标签" class="tab-btn snap-start shrink-0">标签 <span class="ml-1 text-[#8b8178]">(<%= customTags.length %>)</span></button>
     </div>
   </div>
 </div>
@@ -91,7 +91,7 @@
     <% } %>
   </div>
 
-  <!-- Custom Tags -->
+  <!-- 标签（JSON tags 全量；四位数字为发布年份） -->
   <div id="panel-custom" class="hidden grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
     <% customTags.forEach(item => { %>
       <a href="/search?q=<%= encodeURIComponent(item.name) %>" class="tag-card rounded-sm p-3 sm:p-4 block min-h-[3.25rem] flex flex-col justify-center [touch-action:manipulation]">
