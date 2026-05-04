@@ -17,6 +17,10 @@ Open [http://localhost:3000](http://localhost:3000). Or: `npm start` / `npm run 
 bash build-and-run.sh deploy
 ```
 
+## AMD64 与双路径部署一致性
+
+云服务器与 Coolify 多为 **linux/amd64**。要保持 **`build-and-run.sh` 部署** 与 **Coolify 部署** 和本地 `npm run preview` 数据与分类行为一致，请按 **[DEPLOY-AMD64.md](./DEPLOY-AMD64.md)** 配置平台、`DATA_FILE` / `DB_PATH` 与卷挂载。
+
 ## Coolify
 
 Use **Dockerfile** build pack (not Nixpacks). Persist **`/app/data`** for SQLite. See [DEPLOY.md](./DEPLOY.md) and `coolify.json` for env vars (`PORT`, `DB_PATH`, `DATA_FILE`).
