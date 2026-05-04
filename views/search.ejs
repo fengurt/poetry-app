@@ -189,6 +189,7 @@
               <a href="/author/<%= encodeURIComponent(p.author_name) %>"><%= p.author_name %></a>
               <% if (p.poetry_type) { %><span class="poem-feed-card__sep">·</span><span><%= p.poetry_type %></span><% } %>
               <% if (p.category) { %><span class="poem-feed-card__sep">·</span><span><%= p.category %></span><% } %>
+              <% if (p.publishYear) { %><span class="poem-feed-card__sep">·</span><span><%= p.publishYear %></span><% } %>
             </p>
           </header>
           <div class="poem-feed-card__verse" aria-label="节选">
@@ -196,10 +197,10 @@
               <p class="poem-feed-card__line<%= verseIsMultiline ? '' : ' poem-feed-card__line--clamp' %>"><%= line %></p>
             <% }) %>
           </div>
-          <% if (p.tags && p.tags.length > 0) { %>
-            <div class="poem-feed-card__tags">
-              <% p.tags.slice(0, 4).forEach((t, i) => { %><% if (i) { %> <% } %>#<%= t %><% }) %>
-              <% if (p.tags.length > 4) { %> <span class="poem-feed-card__tags-more">+<%= p.tags.length - 4 %></span><% } %>
+          <% if (p.nonYearTags && p.nonYearTags.length > 0) { %>
+            <div class="poem-feed-card__tags px-1 pb-2">
+              <% p.nonYearTags.slice(0, 4).forEach((t, i) => { %><% if (i) { %> <% } %>#<%= t %><% }) %>
+              <% if (p.nonYearTags.length > 4) { %> <span class="poem-feed-card__tags-more">+<%= p.nonYearTags.length - 4 %></span><% } %>
             </div>
           <% } %>
         </a>
@@ -213,7 +214,7 @@
         <p class="text-sm text-[#8b8178] mb-6">换个关键词试试吧</p>
       <% } else { %>
         <p class="font-serif text-lg text-[#1a1814] mb-2">输入关键词开始搜索</p>
-        <p class="text-sm text-[#8b8178] mb-6">支持诗词标题、作者、内容分类、体裁等</p>
+        <p class="text-sm text-[#8b8178] mb-6">支持诗词标题、作者、内容分类、体裁、标签与发布年份等</p>
       <% } %>
       <a href="/" class="inline-block px-5 py-2 bg-[#1a1814] text-white text-sm font-sans rounded-sm hover:bg-[#c5973a] transition-colors">
         返回首页

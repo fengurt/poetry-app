@@ -85,7 +85,7 @@
     /* Bottom nav active — gold dot indicator */
     .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: #c5973a; }
 
-    /* 首页阅读流：白底纸感 + 横向标签 + 诗词行（对齐移动端诗词阅读列表） */
+    /* 首页阅读流：白底纸感 + 元信息（体裁/内容分类/发布年份）+ 诗词行 */
     .home-feed-panel {
       background: #fff;
       border: 1px solid #e8e4dc;
@@ -304,7 +304,7 @@
       </div>
     </aside>
 
-    <!-- Poem List：横向标签 + 纸感阅读流（移动端优先） -->
+    <!-- Poem List：纸感阅读流（移动端优先） -->
     <div class="flex-1 min-w-0 order-1 lg:order-2">
       <% const listPath = selectedAuthor ? ('/author/' + encodeURIComponent(selectedAuthor)) : '/'; %>
       <% const mkQs = (cat, pt, qv) => {
@@ -407,8 +407,6 @@
               previewLines = [one];
             }
           %>
-          <% const tagsArr = p.tags || []; %>
-          <% const yearTag = tagsArr.find(function (t) { return /^\d{4}$/.test(String(t)); }); %>
           <article class="poem-paper-row min-w-0">
             <a href="/poems/<%= p.id %>"
                class="poem-paper-hitarea [touch-action:manipulation]"
@@ -419,7 +417,7 @@
                 <a class="poem-paper-subline__author" href="/author/<%= encodeURIComponent(p.author_name) %>"><%= p.author_name %></a>
                 <% if (p.poetry_type) { %><span class="sep">·</span><span><%= p.poetry_type %></span><% } %>
                 <% if (p.category) { %><span class="sep">·</span><span><%= p.category %></span><% } %>
-                <% if (yearTag) { %><span class="sep">·</span><span><%= yearTag %></span><% } %>
+                <% if (p.publishYear) { %><span class="sep">·</span><span><%= p.publishYear %></span><% } %>
               </p>
               <div class="poem-paper-body" aria-label="节选">
                 <% previewLines.forEach(function (line) { %>

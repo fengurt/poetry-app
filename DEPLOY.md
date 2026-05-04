@@ -135,9 +135,12 @@ git push -u origin main
 ```
 NODE_ENV=production
 PORT=3000
+TZ=Asia/Shanghai
 DB_PATH=/app/data/poetry.db
 DATA_FILE=/app/poetry_data.json
 ```
+
+`TZ` 影响种子/导入写入 `tags` 的默认四位年份与本地日期一致（见 **DEPLOY-AMD64.md**「标签与发布年份」）。
 
 在 Coolify 中为应用添加 **持久化目录**（或命名卷）挂载到容器的 `/app/data`，否则容器重建后 SQLite 会丢失。镜像内可选包含已分类的 `poetry.db`（与 `DB_PATH` 不同路径），启动时若卷库分类条数更少会自动复制覆盖。
 

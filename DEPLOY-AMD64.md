@@ -66,6 +66,7 @@ npm run preview
      -p 3000:3000 \
      -e PORT=3000 \
      -e NODE_ENV=production \
+     -e TZ=Asia/Shanghai \
      -e DB_PATH=/app/data/poetry.db \
      -e DATA_FILE=/app/poetry_data.json \
      -v poetry-app-data:/app/data \
@@ -83,6 +84,7 @@ npm run preview
    ```
    NODE_ENV=production
    PORT=3000
+   TZ=Asia/Shanghai
    DB_PATH=/app/data/poetry.db
    DATA_FILE=/app/poetry_data.json
    ```
@@ -108,10 +110,20 @@ npm run preview
 |--------|------|
 | 首页或列表诗词总数 | 与本地同版本 `poetry_data.json` 导入后一致 |
 | 「内容分类」页 / 筛选 | 各分类有分布，不应长期全部空白 |
-| `GET /api/export?format=xlsx` | 可下载；超长正文在单元格内安全截断（Excel 单格上限约 32767 字符） |
+| `GET /api/export?format=xlsx` | 可下载；含「发布年份」与「标签」列；超长正文安全截断 |
 | `GET /api/export?format=bycategory` | 各章节能看到对应分类下的作品 |
 
 若总数不对：先查 **`DATA_FILE`** 与 **`DB_PATH`** 是否按上表配置，以及 Coolify / compose 是否误把 JSON 指到空卷路径。
+
+---
+
+## 标签与发布年份（Docker 与本地一致）
+
+诗词的 **`tags`** 列为 JSON 字符串数组，**发布年份**即其中 **四位数字** 标签（如 `2026`），与自定义字符串标签并存。
+
+- 首次种子 / 导入时，若 `tags` 中尚无四位年份，会自动 **`unshift` 当前公历年**（`new Date().getFullYear()`），与容器进程的**本地日期**一致。
+- 为避免 UTC 容器在元旦前后与本地（中国）差一年，请在生产环境设置 **`TZ=Asia/Shanghai`**（本仓库 `Dockerfile`、`docker-compose.yml`、`coolify.json`、`build-and-run.sh` 已默认或示例包含）。
+- Excel 导出：**「发布年份」** 列为从 `tags` 抽取的年份；**「标签」** 列为 `tags` 全量（顿号分隔），便于与本地导出的表格对照。
 
 ---
 

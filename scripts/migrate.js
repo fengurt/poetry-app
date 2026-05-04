@@ -84,8 +84,9 @@ const upsertAuthor = db.prepare(`
 
 const authorCounts = {};
 
+const defaultYearTag = String(new Date().getFullYear());
 for (const poem of poemsData) {
-  const tags = ["2026"];
+  const tags = [defaultYearTag];
   if (Array.isArray(poem.tags)) tags.push(...poem.tags);
 
   insertPoem.run(
